@@ -80,7 +80,7 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 
 - `supabase db query --linked -f supabase/tests/rls_test.sql` — 54 tests (anon, speler A, speler B, login zonder speler, beheerder, triggers). Draait in één transactie met `ROLLBACK`: er blijft niets achter. Alle rijen moeten `ok = true` zijn.
 - `python supabase/tests/anon_http_test.py` — test via de echte API met de publieke key dat niet-ingelogde bezoekers niets lezen of schrijven.
-- `supabase db advisors --linked` — geeft geen waarschuwingen.
+- `supabase db advisors --linked` — één waarschuwing: "Leaked Password Protection" staat uit. Niet relevant: inloggen gebeurt alleen via een maillink (geen wachtwoorden).
 
 ## Mijlpaal 2: UI omgebouwd
 
@@ -226,7 +226,7 @@ Look D blijft; RLS, offline-wachtrij, synchronisatie en rollen werken zoals voor
 
 **Woorden**
 - Overal in de app "consumptie(s)" i.p.v. "drankje(s)": kop-ondertitel ("10 consumpties open"), tegel "Open consumpties", "Tik op een consumptie voor +1", Beheer → "Consumpties" / "+ Consumptie", meldingen en Mijn rekening.
-- Titel "Turflijst A-kern" i.p.v. "Drankenlijst A-kern": kop, loginscherm, `<title>`, manifest (`name` "Turflijst A-kern – Racing Mechelen", `short_name` "Turflijst A-kern"). Let op: Android kort een `short_name` van 16 tekens onder het icoon soms af.
+- Titel "Turflijst A-kern" i.p.v. "Drankenlijst A-kern": kop, loginscherm, `<title>`, manifest (`name` "Turflijst A-kern – Racing Mechelen", `short_name` "Turflijst", kort genoeg om onder het icoon op een gsm niet afgekort te worden).
 - Interne namen bleven: tabel `drinks`, `drink_id`, functienamen, de sleutel van versie 1.
 
 **Datamodel** (migratie `20261031090000_categorie_consumpties.sql`, toegepast op het live project)

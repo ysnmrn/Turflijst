@@ -27,7 +27,7 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Keep-alive query
         id: keepalive
@@ -39,7 +39,7 @@ jobs:
 
       - name: Export bewaren als artefact
         if: steps.export.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: turflijst-export-${{ github.run_number }}
           path: export/*.json.gpg

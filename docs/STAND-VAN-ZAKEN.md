@@ -1,6 +1,6 @@
 # Stand van zaken
 
-*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar, nog niet gepusht naar GitHub*
+*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online*
 
 ## Wat is de app?
 
@@ -15,7 +15,7 @@ Versie 1 was één `index.html` met alle gegevens in `localStorage` (één toest
 | 1 | Datamodel + RLS (Supabase) | ✅ klaar |
 | 2 | UI omgebouwd naar Supabase | ✅ klaar |
 | 3 | Offline + PWA | ✅ klaar |
-| 4 | GitHub Action (keep-alive + export) | ✅ klaar (secrets nog in te stellen) |
+| 4 | GitHub Action (keep-alive + export) | ✅ klaar en actief |
 
 ## Supabase-project
 
@@ -164,14 +164,24 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 
 **Getest** (lokaal): ontbrekende secret, key zonder rechten (HTTP 401), onbestaand project (DNS-fout) en ontbrekend export-wachtwoord geven elk een duidelijke `::error` en exitcode 1. De succesroute is getest met een tijdelijk beheerders-token i.p.v. de service key; de versleutelde export werd daarna met `gpg --decrypt` correct ingelezen. De workflow zelf heeft nog niet op GitHub gedraaid (eerst pushen en secrets instellen).
 
+## Online (30 oktober 2026)
+
+- **App**: https://ysnmrn.github.io/Turflijst/ — GitHub Pages, branch `main`, map `/` (root).
+- **Beheerder**: de eigenaar van de repo (GitHub `ysnmrn`). Het e-mailadres staat bewust niet in deze publieke repo. Opzoeken wie beheerder is:
+  ```sql
+  select u.email, p.rol from auth.users u join public.profiles p on p.user_id = u.id where p.rol = 'beheerder';
+  ```
+- **GitHub-secrets** (ingesteld; waarden staan enkel in GitHub en in de wachtwoordmanager van de beheerder, nooit in de repo):
+  - `SUPABASE_SERVICE_ROLE_KEY` — de nieuwe Supabase *secret key* (`sb_secret_...`), rechtstreeks van de Supabase CLI naar `gh secret set` gepijpt.
+  - `BACKUP_PASSPHRASE` — wachtwoord van de versleutelde export. Is op 30 oktober één keer vervangen (het eerste was per ongeluk gedeeld); de exports die met het oude wachtwoord versleuteld waren, zijn verwijderd. Wie dit wachtwoord kwijt is, kan de exports niet meer openen: maak dan een nieuw aan met `gh secret set BACKUP_PASSPHRASE` (oude exports blijven dan onleesbaar).
+- **Workflow**: drie handmatige runs op 30 oktober, alle drie geslaagd (keep-alive, export, artefact, commit). Gecontroleerd dat het artefact met AES256 versleuteld is en enkel met het huidige wachtwoord opent. Actions bijgewerkt naar `checkout@v7` en `upload-artifact@v7` (Node 24). Daarna draait hij vanzelf elke maandag en donderdag.
+- **Databasefuncties** (gecontroleerd in de live database): `afrekenen()` is SECURITY INVOKER (RLS blijft gelden), controleert zelf dat de aanroeper beheerder is en heeft een vaste `search_path`. De SECURITY DEFINER-functies (`private.is_beheerder`, `private.mijn_speler_ids`, en de triggers `handle_new_user` en `players_koppel_email`) hebben allemaal `search_path = ''`; de triggers zijn niet via de API aanroepbaar.
+
 ## Wat nog openstaat
 
-1. **Pushen naar GitHub** (wacht op toestemming van de eigenaar).
-2. **GitHub Pages aanzetten**: *Settings → Pages* → Deploy from a branch → `main` / root (zie README).
-3. **Secrets instellen**: `SUPABASE_SERVICE_ROLE_KEY` en `BACKUP_PASSPHRASE` (zie README), daarna de workflow één keer met de hand starten en controleren dat hij groen is en een commit maakt.
-4. **Eerste beheerder aanduiden**: inloggen in de app, daarna de SQL uit de README.
-5. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
-6. Spelers toevoegen in de app (Beheer → + Speler), met e-mailadres voor wie "Mijn rekening" moet kunnen zien. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
+1. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
+2. **Spelers toevoegen** in de app (Beheer → + Speler), met e-mailadres voor wie "Mijn rekening" moet kunnen zien. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
+3. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
 
 **Mogelijke uitbreidingen** (niet gevraagd, niet gebouwd): prijzen per drankje en bedragen bij afrekenen; beheerders aanduiden vanuit de app; een rol "turver" die enkel mag turven.
 

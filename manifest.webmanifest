@@ -1,0 +1,17 @@
+{
+  "name": "Drankenlijst A-kern – Racing Mechelen",
+  "short_name": "Turflijst",
+  "description": "Turflijst voor de drankjes van de A-kern van Racing Mechelen.",
+  "lang": "nl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f6f3",
+  "theme_color": "#0b6b34",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,6 +1,6 @@
 # Stand van zaken
 
-*Laatst bijgewerkt: 30 oktober 2026 — mijlpaal 2 (UI omgebouwd) klaar*
+*Laatst bijgewerkt: 30 oktober 2026 — mijlpaal 3 (offline + PWA) klaar*
 
 ## Wat is de app?
 
@@ -14,7 +14,7 @@ Versie 1 was één `index.html` met alle gegevens in `localStorage` (één toest
 |---|---|---|
 | 1 | Datamodel + RLS (Supabase) | ✅ klaar |
 | 2 | UI omgebouwd naar Supabase | ✅ klaar |
-| 3 | Offline + PWA | ⏳ |
+| 3 | Offline + PWA | ✅ klaar |
 | 4 | GitHub Action (keep-alive + export) | ⏳ |
 
 ## Supabase-project
@@ -116,13 +116,35 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 
 **Getest** (Microsoft Edge headless, schermformaat 390×844, met tijdelijke testlogins die achteraf verwijderd zijn): inloggen, spelers/drankjes/groepen toevoegen en wijzigen, volgorde, groep verwijderen, turven, −1, ongedaan maken, offline turven en automatisch synchroniseren, afrekenen met opmerking, geschiedenis met alle filters, gast toevoegen, archiveren, en "Mijn rekening" als speler (ziet enkel zichzelf; schrijven wordt geweigerd).
 
+## Mijlpaal 3: offline en installeerbaar (PWA)
+
+**Bestanden**
+
+| Bestand | Inhoud |
+|---|---|
+| `sw.js` | Service worker: bewaart de app-bestanden zodat ze zonder internet openen |
+| `manifest.webmanifest` | Naam, kleuren en iconen voor "Zet op beginscherm" |
+| `icons/` | App-iconen (groen-wit gestreept met "RM"; gegenereerd, geen clublogo) |
+
+**Hoe het werkt**
+
+- **Openen zonder internet**: de service worker geeft de app-bestanden uit zijn cache. De gegevens (spelers, drankjes, open turven, "Mijn rekening") komen uit een lokale kopie in IndexedDB die bij elke succesvolle verversing wordt bijgewerkt. Voorwaarde: de app is minstens één keer met internet geopend en je was ingelogd.
+- **Turven zonder internet**: komt in de wachtrij (IndexedDB) en blijft bewaard, ook als je de app sluit of de gsm herstart. Zodra er weer internet is (of bij openen van de app, of elke 20 seconden) wordt de wachtrij verstuurd. Het statuslabel toont hoeveel er nog wachten.
+- **Updates**: de service worker gebruikt "stale-while-revalidate": hij toont meteen de bewaarde versie en haalt op de achtergrond de nieuwe. Een nieuwe versie zie je dus pas bij de **tweede** keer openen. Wil je de cache helemaal vervangen, verhoog dan `VERSION` in `sw.js`.
+- De app vraagt de browser om de opslag "persistent" te maken, zodat de wachtrij niet zomaar opgeruimd wordt.
+- Supabase-verzoeken gaan nooit via de cache van de service worker.
+
+**Getest** (Edge headless, 390×844): app-bestanden in de cache; manifest en iconen laden; met webserver én netwerk uit opent de app, turven gaan in de wachtrij, na nogmaals herladen staat de wachtrij er nog, en na terug online worden ze verstuurd (op de server gecontroleerd). Een speler ziet offline "Mijn rekening" met de melding "Offline – gegevens van …".
+
+**Aandachtspunt iPhone**: een app op het beginscherm heeft op iOS een eigen opslag, los van Safari. Een login-link uit de mail opent in Safari, niet in de app. Oplossing: de code uit de mail typen (zie "Wat nog openstaat": vraagt eigen SMTP), of tot dan in Safari inloggen. Op Android (Chrome) is er geen probleem.
+
 ## Wat nog openstaat
 
-- Mijlpaal 3 en 4 (zie tabel).
+- Mijlpaal 4 (zie tabel).
 - **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (2 mails/uur is te weinig). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail.
 - **Eerste beheerder aanduiden** na de eerste login (SQL in de README).
 
 ## Hoe verder
 
-1. Mijlpaal 3: service worker + manifest (installeerbaar, offline openen).
+1. Mijlpaal 4: GitHub Action voor keep-alive en wekelijkse export.
 2. Na elke wijziging aan het datamodel: nieuwe migratie in `supabase/migrations/`, `supabase db push`, en de RLS-test opnieuw draaien.

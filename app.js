@@ -95,6 +95,11 @@ const playerOpen = pid => eff().filter(e => e.player_id === pid);
 const guestGroup = () => S.groups.find(g => /gast/i.test(g.naam));
 const activeDrinks = () => S.drinks.filter(d => d.actief).sort(byVolgorde);
 
+/* ------------------------------------------------------------------ service worker (installeerbaar + offline openen) */
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(e => console.warn('Service worker niet geregistreerd', e)));
+}
+
 /* ------------------------------------------------------------------ Supabase */
 if (!CFG.SUPABASE_URL || !CFG.SUPABASE_PUBLISHABLE_KEY || !window.supabase) {
   $('#cfgWarn').hidden = false;
@@ -327,6 +332,8 @@ async function logout() {
 async function start(user) {
   if (S.user && S.user.id === user.id) return;
   S.user = user;
+  // Vraag de browser om de lokale opslag (met de wachtrij) niet zomaar op te ruimen.
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   $$('.meEmail').forEach(el => { el.textContent = user.email || ''; });
   try {
     S.queue = (await DB.queue()).filter(o => o.user === user.id).sort((a, b) => a.seq - b.seq);
@@ -357,6 +364,10 @@ function go(v) {
 }
 function renderApp() {
   if (!S.user) return;
+  if (!S.rol) { // nog nooit gegevens kunnen ophalen op dit toestel
+    $('#v-laden').innerHTML = `<p class="empty">${S.online && navigator.onLine ? 'Laden…' : 'Geen internet. Open de app één keer met internet; daarna werkt ze ook offline.'}</p>`;
+    showView('laden'); renderStatus(); return;
+  }
   const beh = S.rol === 'beheerder';
   const tabs = beh
     ? [['turf', '✏️', 'Turven'], ['over', '📋', 'Overzicht'], ...(S.mine.players.length ? [['mijn', '🧾', 'Mijn rekening']] : []), ['set', '⚙️', 'Beheer']]

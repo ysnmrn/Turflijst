@@ -434,7 +434,10 @@ const ICONS = {
 /* ------------------------------------------------------------------ turven */
 $('#q').oninput = renderGrid;
 const GROUP_KEY = 'turflijst-groep';
-let curGroup = (() => { try { return localStorage.getItem(GROUP_KEY); } catch (e) { return null; } })();
+const ALLE = 'alle';
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* niets */ } };
+let curGroup = lsGet(GROUP_KEY) || ALLE;
 function groupedPlayers(list) {
   const gs = [...S.groups].sort(byVolgorde);
   const out = gs.map(g => ({ g, ps: list.filter(p => p.group_id === g.id).sort(byNaam) }));
@@ -442,20 +445,21 @@ function groupedPlayers(list) {
   if (rest.length) out.push({ g: { id: null, naam: 'Zonder groep' }, ps: rest.sort(byNaam) });
   return out;
 }
-/* Turven: groepen als pillen, één groep tegelijk. Bij zoeken: resultaten uit alle groepen. */
+/* Turven: pil "Alle" (alle groepen onder elkaar) of één groep. Bij zoeken: resultaten uit alle groepen. */
 function renderGrid() {
   const q = $('#q').value.trim().toLowerCase();
   const gs = [...S.groups].sort(byVolgorde);
-  if (!gs.some(g => g.id === curGroup)) curGroup = gs.length ? gs[0].id : null;
+  if (curGroup !== ALLE && !gs.some(g => g.id === curGroup)) curGroup = ALLE;
   const cnt = countsBy(eff(), 'player_id');
   const gg = guestGroup();
 
-  $('#gpills').innerHTML = gs.map(g => `<button class="pill${!q && g.id === curGroup ? ' on' : ''}" role="tab"
+  const pills = [{ id: ALLE, naam: 'Alle' }, ...gs];
+  $('#gpills').innerHTML = pills.map(g => `<button class="pill${!q && g.id === curGroup ? ' on' : ''}" role="tab"
       aria-selected="${!q && g.id === curGroup}" data-g="${g.id}">${esc(g.naam)}</button>`).join('');
   $$('#gpills .pill').forEach(b => {
     b.onclick = () => {
       curGroup = b.dataset.g;
-      try { localStorage.setItem(GROUP_KEY, curGroup); } catch (e) { /* niets */ }
+      lsSet(GROUP_KEY, curGroup);
       $('#q').value = ''; renderGrid();
     };
   });
@@ -470,25 +474,32 @@ function renderGrid() {
       <div class="pgrid">${ps.map(card).join('')}${extra}</div>`;
   };
 
+  const guestCard = '<button class="pcard addguest" data-addguest>+ Gast toevoegen</button>';
   let h = '';
   if (q) {
     const list = S.players.filter(p => p.actief && p.naam.toLowerCase().includes(q));
     for (const { g, ps } of groupedPlayers(list)) if (ps.length) h += section(g, ps);
     if (!h) h = '<div class="empty">Geen speler gevonden.</div>';
-  } else if (curGroup) {
+  } else if (!gs.length) {
+    h = '<div class="empty">Nog geen groepen. Voeg ze toe bij <b>Beheer</b>.</div>';
+  } else if (curGroup === ALLE) {
+    for (const { g, ps } of groupedPlayers(S.players.filter(p => p.actief))) {
+      const isGuest = gg && g.id === gg.id;
+      if (ps.length || isGuest) h += section(g, ps, isGuest ? guestCard : '');
+    }
+    if (!S.players.length) h += '<div class="empty">Nog geen spelers. Voeg ze toe bij <b>Beheer</b>.</div>';
+  } else {
     const g = gs.find(x => x.id === curGroup);
     const ps = S.players.filter(p => p.actief && p.group_id === g.id).sort(byNaam);
     const isGuest = gg && g.id === gg.id;
-    h = section(g, ps, isGuest ? '<button class="pcard addguest" id="addGuest">+ Gast toevoegen</button>' : '');
+    h = section(g, ps, isGuest ? guestCard : '');
     if (!ps.length && !isGuest) {
       h += `<div class="empty">${S.players.length ? 'Nog geen spelers in deze groep.' : 'Nog geen spelers. Voeg ze toe bij <b>Beheer</b>.'}</div>`;
     }
-  } else {
-    h = '<div class="empty">Nog geen groepen. Voeg ze toe bij <b>Beheer</b>.</div>';
   }
   $('#pgrid').innerHTML = h;
   $$('#pgrid .pcard[data-p]').forEach(b => { b.onclick = () => openSheet(b.dataset.p); });
-  const ag = $('#addGuest'); if (ag) ag.onclick = addGuest;
+  $$('#pgrid [data-addguest]').forEach(b => { b.onclick = addGuest; });
   renderSub();
 }
 function needOnline(what) {

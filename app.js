@@ -13,7 +13,6 @@ const byNaam = (a, b) => a.naam.localeCompare(b.naam, 'nl', { sensitivity: 'base
 const byVolgorde = (a, b) => (a.volgorde - b.volgorde) || byNaam(a, b);
 const plural = (n, een, meer) => `${n} ${n === 1 ? een : meer}`;
 const V1_KEY = 'racing-drankenlijst-v1';
-const LOGO_KEY = 'turflijst-logo';
 const APP_URL = location.origin + location.pathname.replace(/index\.html$/, '');
 
 function uuid() {
@@ -943,38 +942,21 @@ async function importV1(d) {
   const rows = (d.entries || []).filter(e => pmap[e.pid] && dmap[e.did])
     .map(e => ({ id: uuid(), player_id: pmap[e.pid], drink_id: dmap[e.did], created_at: new Date(e.ts || Date.now()).toISOString() }));
   for (let i = 0; i < rows.length; i += 500) must(await sb.from('entries').insert(rows.slice(i, i + 500)));
-  if (d.logo && !localStorage.getItem(LOGO_KEY)) { try { localStorage.setItem(LOGO_KEY, d.logo); renderLogo(); } catch (e) { /* te groot */ } }
 }
 
-/* ------------------------------------------------------------------ logo (enkel op dit toestel) */
-/* Standaard het clublogo (logo.png); een eigen logo op dit toestel gaat voor. Lukt laden niet: "RM". */
+/* ------------------------------------------------------------------ logo */
+/* Altijd het clublogo (logo.png). Lukt laden niet: "RM". */
 function renderLogo() {
-  let logo = null; try { logo = localStorage.getItem(LOGO_KEY); } catch (e) { /* niets */ }
   $$('#logo, #sLogo, .loginlogo .logo').forEach(el => {
     const img = new Image();
     img.alt = el.id === 'sLogo' ? '' : 'Racing Mechelen';
     img.onerror = () => { el.innerHTML = '<span>RM</span>'; };
-    img.src = logo || 'logo.png';
+    img.src = 'logo.png';
     el.replaceChildren(img);
   });
 }
-$('#fLogo').onchange = e => {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = () => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas'), k = 160 / Math.max(img.width, img.height);
-      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      try { localStorage.setItem(LOGO_KEY, c.toDataURL('image/png')); toast('Logo opgeslagen'); } catch (_) { toast('Logo opslaan mislukt'); }
-      renderLogo();
-    };
-    img.src = r.result;
-  };
-  r.readAsDataURL(f);
-};
-$('#bLogoDel').onclick = () => { try { localStorage.removeItem(LOGO_KEY); } catch (e) { /* niets */ } renderLogo(); };
+// Vroeger kon je per toestel een eigen logo kiezen; die opgeslagen afbeelding ruimen we op.
+try { localStorage.removeItem('turflijst-logo'); } catch (e) { /* niets */ }
 
 /* ------------------------------------------------------------------ start */
 renderLogo();

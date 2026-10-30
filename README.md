@@ -1,6 +1,6 @@
 # Turflijst
 
-Digitale drankenlijst (turflijst) voor de A-kern van Racing Mechelen.
+Digitale turflijst voor de A-kern van Racing Mechelen.
 
 - **Frontend**: `index.html` + `app.js` (vanilla JavaScript, geen build-stap), gehost op GitHub Pages:
   https://ysnmrn.github.io/Turflijst/
@@ -14,8 +14,8 @@ Status, beslissingen en volgende stappen: [docs/STAND-VAN-ZAKEN.md](docs/STAND-V
 
 | Rol | Kan |
 |---|---|
-| **Beheerder** | Turven voor iedereen, afrekenen, spelers/drankjes/groepen beheren, overzicht en geschiedenis bekijken |
-| **Speler** | Enkel "Mijn rekening": eigen openstaande drankjes en vorige afrekeningen. Kan niets wijzigen. |
+| **Beheerder** | Turven voor iedereen, afrekenen, spelers/consumpties/groepen beheren, overzicht en geschiedenis bekijken |
+| **Speler** | Enkel "Mijn rekening": eigen openstaande consumpties en vorige afrekeningen. Kan niets wijzigen. |
 
 Iedereen die inlogt krijgt eerst de rol *speler*. Een speler ziet zijn rekening pas als de beheerder bij die speler zijn e-mailadres invult (Beheer → Spelers → Wijzig).
 
@@ -26,7 +26,7 @@ index.html, app.js        de app
 config.js                 Supabase-URL + publishable key (publiek, mag in de repo)
 sw.js, manifest.webmanifest, icons/   offline + installeerbaar
 vendor/supabase.js        supabase-js (vaste versie)
-supabase/migrations/      datamodel, RLS, startgegevens (groepen + drankjes)
+supabase/migrations/      datamodel, RLS, startgegevens (groepen + consumpties)
 supabase/tests/           RLS-tests
 supabase/templates/       login-mails (actief zodra eigen SMTP is ingesteld)
 scripts/supabase_ops.py   keep-alive en export (gebruikt door de GitHub Action)
@@ -44,7 +44,7 @@ docs/                     stand van zaken, keepalive.txt
    ```sh
    supabase login
    supabase link --project-ref <project-ref>
-   supabase db push              # maakt tabellen, RLS, en zet groepen + drankjes klaar
+   supabase db push              # maakt tabellen, RLS, en zet groepen + consumpties klaar
    supabase config diff          # bekijk wat er aan de auth-instellingen verandert
    supabase config push          # site_url en redirect-URL's uit supabase/config.toml
    ```

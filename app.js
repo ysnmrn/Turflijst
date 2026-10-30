@@ -356,7 +356,7 @@ let curView = null;
 const TITLES = { over: 'Overzicht' };
 function showView(v) {
   curView = v;
-  $('h1').textContent = TITLES[v] || 'Drankenlijst A-kern';
+  $('h1').textContent = TITLES[v] || 'Turflijst A-kern';
   $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
   $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
 }
@@ -416,7 +416,7 @@ document.addEventListener('click', ev => {
 function renderSub() {
   if (S.rol === 'beheerder') {
     const n = eff().length;
-    $('#sub').textContent = n ? `${plural(n, 'drankje', 'drankjes')} open` : 'Alles afgerekend';
+    $('#sub').textContent = n ? `${plural(n, 'consumptie', 'consumpties')} open` : 'Alles afgerekend';
   } else $('#sub').textContent = 'Mijn rekening';
 }
 
@@ -551,7 +551,7 @@ function renderSheet() {
       <span class="nm">${esc(d.naam)}</span>
       <span class="ct"><span class="num">${c[d.id] || 0}</span>
       <button class="minus" data-m="${d.id}" ${c[d.id] ? '' : 'disabled'} aria-label="Eén minder">−</button></span></div>`).join('')
-    || '<div class="empty" style="grid-column:1/-1">Nog geen drankjes. Voeg ze toe bij Beheer.</div>';
+    || '<div class="empty" style="grid-column:1/-1">Nog geen consumpties. Voeg ze toe bij Beheer.</div>';
   $$('#dgrid .dbtn').forEach(el => {
     el.onclick = ev => { if (ev.target.closest('.minus')) return; if (dById(el.dataset.d).actief) addTurf(cur, el.dataset.d); };
   });
@@ -561,7 +561,7 @@ function renderSheet() {
   $('#sSum').innerHTML = t ? `<div class="chips">${items}</div>
     ${pend ? `<p class="pend">${pend} nog niet gesynchroniseerd.</p>` : ''}
     <button class="settle" id="sSettle">Afrekenen (${t})</button>`
-    : `<p class="muted" style="margin:4px auto;text-align:center">Niets open voor ${esc(p.naam)}. Tik op een drankje om te turven.</p>`;
+    : `<p class="muted" style="margin:4px auto;text-align:center">Niets open voor ${esc(p.naam)}. Tik op een consumptie voor +1.</p>`;
   const sbtn = $('#sSettle'); if (sbtn) sbtn.onclick = () => settle(cur);
 }
 
@@ -659,7 +659,7 @@ const otherYear = d => d.getFullYear() !== new Date().getFullYear();
 const fmtDag = ts => { const d = new Date(ts); return nlKort(d, { day: 'numeric', month: 'short' }) + (otherYear(d) ? ` ’${String(d.getFullYear()).slice(2)}` : ''); };
 const fmtUur = ts => new Date(ts).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
 const CHEV = svg('<path d="M9 5l7 7-7 7"/>');
-/* drankjes geteld, meeste eerst (bij gelijkstand: volgorde van de drankjeslijst) */
+/* consumpties geteld, meeste eerst (bij gelijkstand: volgorde van de lijst) */
 function drinkCounts(list) {
   const c = countsBy(list, 'drink_id');
   return Object.keys(c).map(id => ({ d: dById(id) || { naam: '?', volgorde: 1e9 }, n: c[id] }))
@@ -778,7 +778,7 @@ function renderDays(rows) {
     const d = new Date(list[0].settled_at);
     const n = list.reduce((t, s) => t + (s.entries || []).length, 0);
     const lbl = nlKort(d, { weekday: 'short', day: 'numeric', month: 'short', ...(otherYear(d) ? { year: 'numeric' } : {}) });
-    h += `<div class="ghead">${esc(lbl)}<span class="c">${plural(n, 'drankje', 'drankjes')}</span></div><div class="hday">` +
+    h += `<div class="ghead">${esc(lbl)}<span class="c">${plural(n, 'consumptie', 'consumpties')}</span></div><div class="hday">` +
       list.map(s => `<div class="hrow"><div class="hline"><b class="hnm">${esc((pById(s.player_id) || { naam: '?' }).naam)}</b>
         <span class="huur">${fmtUur(s.settled_at)}</span><span class="htot">${(s.entries || []).length}</span></div>
         <div class="hits">${drinkCounts(s.entries || []).map(x => `${x.n}× ${esc(x.d.naam)}`).join(' · ')}</div>
@@ -795,12 +795,12 @@ function renderHist(rows, sumEl, listEl, withName) {
   if (!rows.length) { sumEl.innerHTML = ''; listEl.innerHTML = '<p class="muted">Geen afrekeningen in deze periode.</p>'; return; }
   const all = rows.flatMap(s => s.entries || []);
   const c = countsBy(all, 'drink_id');
-  sumEl.innerHTML = `<div class="card"><b>${plural(rows.length, 'afrekening', 'afrekeningen')} · ${plural(all.length, 'drankje', 'drankjes')}</b>
+  sumEl.innerHTML = `<div class="card"><b>${plural(rows.length, 'afrekening', 'afrekeningen')} · ${plural(all.length, 'consumptie', 'consumpties')}</b>
     <div class="chips">${S.drinks.filter(d => c[d.id]).sort(byVolgorde).map(d => `<span class="chip">${c[d.id]}× ${esc(d.naam)}</span>`).join('')}</div></div>`;
   listEl.innerHTML = rows.map(s => {
     const items = settlementItems(s), n = (s.entries || []).length;
     return `<div class="card"><div class="row sb">
-      <b>${withName ? esc((pById(s.player_id) || { naam: '?' }).naam) : plural(n, 'drankje', 'drankjes')}</b><span class="muted">${fmtDate(s.settled_at)}</span></div>
+      <b>${withName ? esc((pById(s.player_id) || { naam: '?' }).naam) : plural(n, 'consumptie', 'consumpties')}</b><span class="muted">${fmtDate(s.settled_at)}</span></div>
       <div class="muted">${items.map(i => `${i.n}× ${esc(i.naam)}`).join(', ')}${withName ? ` <b>(${n})</b>` : ''}</div>
       ${s.opmerking ? `<div class="muted" style="margin-top:4px">💬 ${esc(s.opmerking)}</div>` : ''}</div>`;
   }).join('');
@@ -815,7 +815,7 @@ function renderMijn() {
     const items = S.drinks.filter(d => c[d.id]).sort(byVolgorde).map(d => `<span class="chip">${c[d.id]}× ${esc(d.naam)}</span>`).join('');
     const sets = S.mine.settlements.filter(s => s.player_id === p.id);
     return `<div class="card"><div class="muted">${esc(p.naam)} · openstaand</div>
-        <div class="big">${plural(open.length, 'drankje', 'drankjes')}</div>
+        <div class="big">${plural(open.length, 'consumptie', 'consumpties')}</div>
         ${items ? `<div class="chips">${items}</div>` : '<p class="muted" style="margin:6px 0 0">Alles is afgerekend. 🎉</p>'}</div>
       <h2>Vorige afrekeningen</h2><div class="hist" data-hist="${p.id}">${sets.length ? '' : '<p class="muted">Nog geen afrekeningen.</p>'}</div>`;
   }).join('');
@@ -846,7 +846,7 @@ function renderSet() {
   $('#lPlayers').innerHTML = h || '<li class="muted">Nog geen spelers.</li>';
   $$('#lPlayers [data-edit-p]').forEach(b => { b.onclick = () => editPlayer(b.dataset.editP); });
 
-  // drankjes
+  // consumpties
   const ds = [...S.drinks].sort((a, b) => (b.actief - a.actief) || byVolgorde(a, b));
   const act = ds.filter(d => d.actief);
   $('#lDrinks').innerHTML = ds.map(d => {
@@ -855,7 +855,7 @@ function renderSet() {
       ${d.actief ? `<button class="mv" data-mv-d="${d.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Hoger">▲</button>
       <button class="mv" data-mv-d="${d.id}" data-dir="1" ${i === act.length - 1 ? 'disabled' : ''} aria-label="Lager">▼</button>` : ''}
       <button class="btn sec small" data-edit-d="${d.id}">Wijzig</button></li>`;
-  }).join('') || '<li class="muted">Nog geen drankjes.</li>';
+  }).join('') || '<li class="muted">Nog geen consumpties.</li>';
   $$('#lDrinks [data-edit-d]').forEach(b => { b.onclick = () => editDrink(b.dataset.editD); });
   $$('#lDrinks [data-mv-d]').forEach(b => { b.onclick = () => move('drinks', act, b.dataset.mvD, +b.dataset.dir); });
 
@@ -908,7 +908,7 @@ function editPlayer(id) {
     if (!row.naam) { toast('Vul een naam in'); return false; }
     if (row.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(row.email)) { toast('Dat e-mailadres klopt niet'); return false; }
     if (id && !row.actief && playerOpen(id).length) {
-      toast(`Let op: ${p.naam} heeft nog ${playerOpen(id).length} open drankjes`);
+      toast(`Let op: ${p.naam} heeft nog ${playerOpen(id).length} open consumpties`);
     }
     const q = id ? sb.from('players').update(row).eq('id', id) : sb.from('players').insert(row);
     const { error } = await q;
@@ -918,9 +918,9 @@ function editPlayer(id) {
   }, '#ePn');
 }
 function editDrink(id) {
-  if (needOnline('Drankjes wijzigen')) return;
+  if (needOnline('Consumpties wijzigen')) return;
   const d = id ? S.drinks.find(x => x.id === id) : { naam: '', actief: true };
-  dialog(`<h3>${id ? 'Drankje wijzigen' : 'Drankje toevoegen'}</h3>
+  dialog(`<h3>${id ? 'Consumptie wijzigen' : 'Consumptie toevoegen'}</h3>
     <label class="f" for="eDn">Naam</label><input type="text" id="eDn" maxlength="40" value="${esc(d.naam)}">
     ${id ? `<label class="chk"><input type="checkbox" id="eDa" ${d.actief ? 'checked' : ''}> Actief (uitvinken = archiveren)</label>` : ''}`,
   id ? 'Opslaan' : 'Toevoegen', async () => {
@@ -929,8 +929,8 @@ function editDrink(id) {
     if (id) row.actief = $('#eDa').checked;
     else row.volgorde = Math.max(0, ...S.drinks.map(x => x.volgorde)) + 1;
     const { error } = id ? await sb.from('drinks').update(row).eq('id', id) : await sb.from('drinks').insert(row);
-    if (error) { toast(/duplicate|uniek/.test(error.message) ? 'Dat drankje bestaat al' : 'Opslaan mislukt: ' + error.message); return false; }
-    toast('Drankje opgeslagen');
+    if (error) { toast(/duplicate|uniek/.test(error.message) ? 'Die consumptie bestaat al' : 'Opslaan mislukt: ' + error.message); return false; }
+    toast('Consumptie opgeslagen');
     await refresh();
   }, '#eDn');
 }
@@ -989,8 +989,8 @@ function renderV1Card() {
   $('#v1Card').hidden = !d;
   if (!d) return;
   $('#v1Txt').textContent = `Op dit toestel staan nog gegevens van de oude versie: ${plural(d.players.length, 'speler', 'spelers')}, ` +
-    `${plural(d.drinks.length, 'drankje', 'drankjes')} en ${plural((d.entries || []).length, 'open turf', 'open turven')}. ` +
-    'Importeren voegt ontbrekende groepen, drankjes en spelers toe (op naam) en zet de open turven online. Doe dit maar één keer.';
+    `${plural(d.drinks.length, 'consumptie', 'consumpties')} en ${plural((d.entries || []).length, 'open turf', 'open turven')}. ` +
+    'Importeren voegt ontbrekende groepen, consumpties en spelers toe (op naam) en zet de open turven online. Doe dit maar één keer.';
 }
 $('#v1Imp').onclick = () => {
   if (needOnline('Importeren')) return;
@@ -1013,7 +1013,7 @@ async function importV1(d) {
   const newG = gNames.filter(n => !S.groups.some(g => low(g.naam) === low(n))).map(n => ({ naam: n, volgorde: ++maxG }));
   if (newG.length) S.groups.push(...must(await sb.from('groups').insert(newG).select('id,naam,volgorde')));
   const gid = n => S.groups.find(g => low(g.naam) === low(n || 'Spelers')).id;
-  // drankjes
+  // consumpties
   let maxD = Math.max(0, ...S.drinks.map(x => x.volgorde));
   const newD = d.drinks.filter(x => !S.drinks.some(y => low(y.naam) === low(x.name))).map(x => ({ naam: x.name, volgorde: ++maxD }));
   if (newD.length) S.drinks.push(...must(await sb.from('drinks').insert(newD).select('id,naam,volgorde,actief')));

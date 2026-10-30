@@ -1,7 +1,7 @@
 {
-  "name": "Drankenlijst A-kern – Racing Mechelen",
-  "short_name": "Turflijst",
-  "description": "Turflijst voor de drankjes van de A-kern van Racing Mechelen.",
+  "name": "Turflijst A-kern – Racing Mechelen",
+  "short_name": "Turflijst A-kern",
+  "description": "Turflijst voor de consumpties van de A-kern van Racing Mechelen.",
   "lang": "nl",
   "start_url": "./",
   "scope": "./",

@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preload" href="fonts/barlow-500.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
-<title>Drankenlijst A-kern – Racing Mechelen</title>
+<title>Turflijst A-kern – Racing Mechelen</title>
 <style>
   /* ---------------------------------------------------------------- fonts (zelf gehost, zie fonts/BRON.txt) */
   @font-face{font-family:Barlow;font-weight:400;font-style:normal;font-display:swap;src:url(fonts/barlow-400.woff2) format("woff2")}
@@ -123,7 +123,7 @@
   .pcard:active{transform:scale(.98);background:var(--zacht)}
   .pcard.addguest{border:2px dashed var(--groen);color:var(--groen);background:transparent;justify-content:center}
 
-  /* ---------------------------------------------------------------- drankjesscherm (speler) */
+  /* ---------------------------------------------------------------- consumptiescherm (speler) */
   .screen{position:fixed;inset:0;z-index:21;background:var(--bg);display:flex;flex-direction:column;
     transform:translateX(104%);transition:transform .22s ease;visibility:hidden}
   .screen.on{transform:none;visibility:visible}
@@ -245,7 +245,7 @@
 <body>
 <header class="hdr">
   <div class="logo" id="logo"><img alt="Racing Mechelen" src="logo.png"></div>
-  <div class="ttl"><div class="club">Racing Mechelen</div><h1>Drankenlijst A-kern</h1><div class="sub" id="sub"></div></div>
+  <div class="ttl"><div class="club">Racing Mechelen</div><h1>Turflijst A-kern</h1><div class="sub" id="sub"></div></div>
   <button class="sync" id="sync" hidden><i></i><span id="syncTxt"></span></button>
 </header>
 
@@ -299,7 +299,7 @@
   <!-- OVERZICHT -->
   <section class="view" id="v-over">
     <div class="tiles">
-      <div class="tile"><span class="tl">Open drankjes</span><b id="tOpen">0</b></div>
+      <div class="tile"><span class="tl">Open consumpties</span><b id="tOpen">0</b></div>
       <div class="tile"><span class="tl">Spelers open</span><b id="tSpelers">0</b></div>
       <div class="tile"><span class="tl">Laatst afgerekend</span><b id="tLaatst">–</b></div>
     </div>
@@ -346,7 +346,7 @@
       <ul class="list" id="lPlayers"></ul>
     </div>
     <div class="card">
-      <div class="row sb"><h3>Drankjes</h3><button class="btn small" id="addDrink">+ Drankje</button></div>
+      <div class="row sb"><h3>Consumpties</h3><button class="btn small" id="addDrink">+ Consumptie</button></div>
       <ul class="list" id="lDrinks"></ul>
     </div>
     <div class="card">
@@ -367,7 +367,7 @@
 
 <nav id="nav" hidden></nav>
 
-<!-- drankjesscherm van één speler -->
+<!-- consumptiescherm van één speler -->
 <div class="scrim" id="scrim" hidden></div>
 <div class="screen" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sName">
   <div class="shead">

@@ -11,6 +11,10 @@ const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const byNaam = (a, b) => a.naam.localeCompare(b.naam, 'nl', { sensitivity: 'base' });
 const byVolgorde = (a, b) => (a.volgorde - b.volgorde) || byNaam(a, b);
+/* categorieën van consumpties, in deze vaste volgorde (zie migratie categorie_consumpties) */
+const CATS = ['Fris', 'Warm', 'Bier', 'Snacks'];
+const catOf = d => (CATS.includes(d.categorie) ? d.categorie : 'Fris');
+const byCat = (a, b) => (CATS.indexOf(catOf(a)) - CATS.indexOf(catOf(b))) || byVolgorde(a, b);
 const plural = (n, een, meer) => `${n} ${n === 1 ? een : meer}`;
 const V1_KEY = 'racing-drankenlijst-v1';
 const APP_URL = location.origin + location.pathname.replace(/index\.html$/, '');
@@ -93,7 +97,7 @@ const dName = id => (dById(id) || { naam: '?' }).naam;
 function countsBy(list, key) { const c = {}; for (const e of list) c[e[key]] = (c[e[key]] || 0) + 1; return c; }
 const playerOpen = pid => eff().filter(e => e.player_id === pid);
 const guestGroup = () => S.groups.find(g => /gast/i.test(g.naam));
-const activeDrinks = () => S.drinks.filter(d => d.actief).sort(byVolgorde);
+const activeDrinks = () => S.drinks.filter(d => d.actief).sort(byCat);
 
 /* ------------------------------------------------------------------ service worker (installeerbaar + offline openen) */
 if ('serviceWorker' in navigator) {
@@ -157,7 +161,7 @@ async function doRefresh(tries = 0) {
       [groups, players, drinks, open, last] = await Promise.all([
         fetchAll(() => sb.from('groups').select('id,naam,volgorde').order('volgorde').order('id')),
         fetchAll(() => sb.from('players').select('id,naam,group_id,email,user_id,actief').order('naam').order('id')),
-        fetchAll(() => sb.from('drinks').select('id,naam,volgorde,actief').order('volgorde').order('id')),
+        fetchAll(() => sb.from('drinks').select('id,naam,volgorde,actief,categorie').order('volgorde').order('id')),
         fetchAll(() => sb.from('entries').select('id,player_id,drink_id,created_at').is('settlement_id', null).order('created_at').order('id')),
         sb.from('settlements').select('settled_at').order('settled_at', { ascending: false }).limit(1),
       ]);
@@ -167,7 +171,7 @@ async function doRefresh(tries = 0) {
     } else {
       [mine.players, drinks] = await Promise.all([
         fetchAll(() => sb.from('players').select('id,naam,group_id,email,user_id,actief').order('naam').order('id')),
-        fetchAll(() => sb.from('drinks').select('id,naam,volgorde,actief').order('volgorde').order('id')),
+        fetchAll(() => sb.from('drinks').select('id,naam,volgorde,actief,categorie').order('volgorde').order('id')),
       ]);
       if (mine.players.length) {
         mine.open = await fetchAll(() => sb.from('entries').select('id,player_id,drink_id,created_at').is('settlement_id', null).order('created_at').order('id'));
@@ -546,12 +550,15 @@ function renderSheet() {
   $('#sGrp').textContent = g ? g.naam : '';
   const open = playerOpen(cur), c = countsBy(open, 'drink_id');
   $('#sTot').textContent = open.length;
-  const ds = S.drinks.filter(d => d.actief || c[d.id]).sort(byVolgorde);
-  $('#dgrid').innerHTML = ds.map(d => `<div class="dbtn${c[d.id] ? ' has' : ''}${d.actief ? '' : ' arch'}" data-d="${d.id}" role="button" tabindex="0">
+  const ds = S.drinks.filter(d => d.actief || c[d.id]).sort(byCat);
+  const tile = d => `<div class="dbtn${c[d.id] ? ' has' : ''}${d.actief ? '' : ' arch'}" data-d="${d.id}" role="button" tabindex="0">
       <span class="nm">${esc(d.naam)}</span>
       <span class="ct"><span class="num">${c[d.id] || 0}</span>
-      <button class="minus" data-m="${d.id}" ${c[d.id] ? '' : 'disabled'} aria-label="Eén minder">−</button></span></div>`).join('')
-    || '<div class="empty" style="grid-column:1/-1">Nog geen consumpties. Voeg ze toe bij Beheer.</div>';
+      <button class="minus" data-m="${d.id}" ${c[d.id] ? '' : 'disabled'} aria-label="Eén minder">−</button></span></div>`;
+  $('#dgrid').innerHTML = CATS.map(k => {
+    const list = ds.filter(d => catOf(d) === k);
+    return list.length ? `<div class="ghead">${k}</div><div class="dgrid">${list.map(tile).join('')}</div>` : '';
+  }).join('') || '<div class="empty">Nog geen consumpties. Voeg ze toe bij Beheer.</div>';
   $$('#dgrid .dbtn').forEach(el => {
     el.onclick = ev => { if (ev.target.closest('.minus')) return; if (dById(el.dataset.d).actief) addTurf(cur, el.dataset.d); };
   });
@@ -632,7 +639,7 @@ async function settle(pid) {
   if (S.queue.some(o => o.entry.player_id === pid)) return toast('Turven worden nog gesynchroniseerd, probeer zo opnieuw');
   const p = pById(pid), open = playerOpen(pid), c = countsBy(open, 'drink_id');
   if (!open.length) return;
-  const txt = S.drinks.filter(d => c[d.id]).sort(byVolgorde).map(d => `${c[d.id]}× ${esc(d.naam)}`).join(', ');
+  const txt = S.drinks.filter(d => c[d.id]).sort(byCat).map(d => `${c[d.id]}× ${esc(d.naam)}`).join(', ');
   dialog(`<h3>${esc(p.naam)} afrekenen?</h3><p class="muted">${txt} (${open.length} in totaal). De teller gaat terug naar 0.</p>
     <label class="f" for="sOpm">Opmerking (optioneel)</label><input type="text" id="sOpm" maxlength="200" placeholder="bv. betaald cash">`,
   'Afgerekend', async () => {
@@ -660,12 +667,13 @@ const fmtDag = ts => { const d = new Date(ts); return nlKort(d, { day: 'numeric'
 const fmtUur = ts => new Date(ts).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
 const CHEV = svg('<path d="M9 5l7 7-7 7"/>');
 /* consumpties geteld, meeste eerst (bij gelijkstand: volgorde van de lijst) */
-function drinkCounts(list) {
+function drinkCounts(list, perCat = false) {
   const c = countsBy(list, 'drink_id');
+  const ci = x => (perCat ? CATS.indexOf(catOf(x.d)) : 0);
   return Object.keys(c).map(id => ({ d: dById(id) || { naam: '?', volgorde: 1e9 }, n: c[id] }))
-    .sort((a, b) => (b.n - a.n) || byVolgorde(a.d, b.d));
+    .sort((a, b) => (ci(a) - ci(b)) || (b.n - a.n) || byVolgorde(a.d, b.d));
 }
-const chipsHtml = list => `<span class="chips">${drinkCounts(list).map(x => `<span class="chip">${x.n}× ${esc(x.d.naam)}</span>`).join('')}</span>`;
+const chipsHtml = (list, perCat) => `<span class="chips">${drinkCounts(list, perCat).map(x => `<span class="chip">${x.n}× ${esc(x.d.naam)}</span>`).join('')}</span>`;
 
 function setOverTab(t, load = true) {
   overTab = t; lsSet(OVER_KEY, t);
@@ -701,7 +709,7 @@ function renderOver() {
     h += `<div class="ghead">${esc(g.naam)}<span class="c">${n} open</span></div>` + ps.map(p => `<button class="ocard" data-p="${p.id}">
       <span class="otop"><span class="onm">${esc(p.naam)}</span><span class="otot">${cnt[p.id]}</span>${CHEV}</span>${chipsHtml(playerOpen(p.id))}</button>`).join('');
   }
-  if (h) h += `<div class="osum"><div class="olbl">Alle spelers samen</div>${chipsHtml(open)}</div>`;
+  if (h) h += `<div class="osum"><div class="olbl">Alle spelers samen</div>${chipsHtml(open, true)}</div>`;
   $('#pOpen').innerHTML = h || '<div class="empty">Niets open.</div>';
   $$('#pOpen .ocard').forEach(b => { b.onclick = () => openSheet(b.dataset.p); });
 
@@ -788,7 +796,7 @@ function renderDays(rows) {
 }
 function settlementItems(s) {
   const c = countsBy(s.entries || [], 'drink_id');
-  return S.drinks.filter(d => c[d.id]).sort(byVolgorde).map(d => ({ naam: d.naam, n: c[d.id] }))
+  return S.drinks.filter(d => c[d.id]).sort(byCat).map(d => ({ naam: d.naam, n: c[d.id] }))
     .concat(Object.keys(c).filter(id => !dById(id)).map(id => ({ naam: '?', n: c[id] })));
 }
 function renderHist(rows, sumEl, listEl, withName) {
@@ -796,7 +804,7 @@ function renderHist(rows, sumEl, listEl, withName) {
   const all = rows.flatMap(s => s.entries || []);
   const c = countsBy(all, 'drink_id');
   sumEl.innerHTML = `<div class="card"><b>${plural(rows.length, 'afrekening', 'afrekeningen')} · ${plural(all.length, 'consumptie', 'consumpties')}</b>
-    <div class="chips">${S.drinks.filter(d => c[d.id]).sort(byVolgorde).map(d => `<span class="chip">${c[d.id]}× ${esc(d.naam)}</span>`).join('')}</div></div>`;
+    <div class="chips">${S.drinks.filter(d => c[d.id]).sort(byCat).map(d => `<span class="chip">${c[d.id]}× ${esc(d.naam)}</span>`).join('')}</div></div>`;
   listEl.innerHTML = rows.map(s => {
     const items = settlementItems(s), n = (s.entries || []).length;
     return `<div class="card"><div class="row sb">
@@ -812,7 +820,7 @@ function renderMijn() {
   const h = S.mine.players.map(p => {
     const open = beh ? playerOpen(p.id) : S.mine.open.filter(e => e.player_id === p.id);
     const c = countsBy(open, 'drink_id');
-    const items = S.drinks.filter(d => c[d.id]).sort(byVolgorde).map(d => `<span class="chip">${c[d.id]}× ${esc(d.naam)}</span>`).join('');
+    const items = S.drinks.filter(d => c[d.id]).sort(byCat).map(d => `<span class="chip">${c[d.id]}× ${esc(d.naam)}</span>`).join('');
     const sets = S.mine.settlements.filter(s => s.player_id === p.id);
     return `<div class="card"><div class="muted">${esc(p.naam)} · openstaand</div>
         <div class="big">${plural(open.length, 'consumptie', 'consumpties')}</div>
@@ -847,17 +855,23 @@ function renderSet() {
   $$('#lPlayers [data-edit-p]').forEach(b => { b.onclick = () => editPlayer(b.dataset.editP); });
 
   // consumpties
-  const ds = [...S.drinks].sort((a, b) => (b.actief - a.actief) || byVolgorde(a, b));
-  const act = ds.filter(d => d.actief);
-  $('#lDrinks').innerHTML = ds.map(d => {
-    const i = act.indexOf(d);
-    return `<li class="${d.actief ? '' : 'arch'}"><span class="nm" data-edit-d="${d.id}">${esc(d.naam)}${d.actief ? '' : '<small>gearchiveerd</small>'}</span>
-      ${d.actief ? `<button class="mv" data-mv-d="${d.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Hoger">▲</button>
-      <button class="mv" data-mv-d="${d.id}" data-dir="1" ${i === act.length - 1 ? 'disabled' : ''} aria-label="Lager">▼</button>` : ''}
-      <button class="btn sec small" data-edit-d="${d.id}">Wijzig</button></li>`;
+  const actIn = k => S.drinks.filter(d => d.actief && catOf(d) === k).sort(byVolgorde);
+  $('#lDrinks').innerHTML = CATS.map(k => {
+    const act = actIn(k);
+    const ds = [...act, ...S.drinks.filter(d => !d.actief && catOf(d) === k).sort(byVolgorde)];
+    if (!ds.length) return '';
+    return `<li class="sub">${k}</li>` + ds.map(d => {
+      const i = act.indexOf(d);
+      return `<li class="${d.actief ? '' : 'arch'}"><span class="nm" data-edit-d="${d.id}">${esc(d.naam)}${d.actief ? '' : '<small>gearchiveerd</small>'}</span>
+        ${d.actief ? `<button class="mv" data-mv-d="${d.id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Hoger">▲</button>
+        <button class="mv" data-mv-d="${d.id}" data-dir="1" ${i === act.length - 1 ? 'disabled' : ''} aria-label="Lager">▼</button>` : ''}
+        <button class="btn sec small" data-edit-d="${d.id}">Wijzig</button></li>`;
+    }).join('');
   }).join('') || '<li class="muted">Nog geen consumpties.</li>';
   $$('#lDrinks [data-edit-d]').forEach(b => { b.onclick = () => editDrink(b.dataset.editD); });
-  $$('#lDrinks [data-mv-d]').forEach(b => { b.onclick = () => move('drinks', act, b.dataset.mvD, +b.dataset.dir); });
+  $$('#lDrinks [data-mv-d]').forEach(b => {
+    b.onclick = () => move('drinks', actIn(catOf(dById(b.dataset.mvD))), b.dataset.mvD, +b.dataset.dir);
+  });
 
   // groepen
   const gs = [...S.groups].sort(byVolgorde);
@@ -919,12 +933,13 @@ function editPlayer(id) {
 }
 function editDrink(id) {
   if (needOnline('Consumpties wijzigen')) return;
-  const d = id ? S.drinks.find(x => x.id === id) : { naam: '', actief: true };
+  const d = id ? S.drinks.find(x => x.id === id) : { naam: '', actief: true, categorie: 'Fris' };
   dialog(`<h3>${id ? 'Consumptie wijzigen' : 'Consumptie toevoegen'}</h3>
     <label class="f" for="eDn">Naam</label><input type="text" id="eDn" maxlength="40" value="${esc(d.naam)}">
+    <label class="f" for="eDc">Categorie</label><select id="eDc">${CATS.map(k => `<option ${k === catOf(d) ? 'selected' : ''}>${k}</option>`).join('')}</select>
     ${id ? `<label class="chk"><input type="checkbox" id="eDa" ${d.actief ? 'checked' : ''}> Actief (uitvinken = archiveren)</label>` : ''}`,
   id ? 'Opslaan' : 'Toevoegen', async () => {
-    const row = { naam: $('#eDn').value.trim() };
+    const row = { naam: $('#eDn').value.trim(), categorie: $('#eDc').value };
     if (!row.naam) { toast('Vul een naam in'); return false; }
     if (id) row.actief = $('#eDa').checked;
     else row.volgorde = Math.max(0, ...S.drinks.map(x => x.volgorde)) + 1;
@@ -1016,7 +1031,7 @@ async function importV1(d) {
   // consumpties
   let maxD = Math.max(0, ...S.drinks.map(x => x.volgorde));
   const newD = d.drinks.filter(x => !S.drinks.some(y => low(y.naam) === low(x.name))).map(x => ({ naam: x.name, volgorde: ++maxD }));
-  if (newD.length) S.drinks.push(...must(await sb.from('drinks').insert(newD).select('id,naam,volgorde,actief')));
+  if (newD.length) S.drinks.push(...must(await sb.from('drinks').insert(newD).select('id,naam,volgorde,actief,categorie')));
   const dmap = {}; d.drinks.forEach(x => { dmap[x.id] = S.drinks.find(y => low(y.naam) === low(x.name)).id; });
   // spelers
   const newP = d.players.filter(x => !S.players.some(y => low(y.naam) === low(x.name))).map(x => ({ naam: x.name, group_id: gid(x.group) }));

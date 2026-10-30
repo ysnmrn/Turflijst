@@ -145,7 +145,8 @@
   .slogo span{color:var(--groen);font:700 14px var(--fc)}
   .sbody{flex:1;overflow:auto;padding:14px 12px;-webkit-overflow-scrolling:touch}
   .sbody>*{max-width:720px;margin-left:auto;margin-right:auto}
-  .dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .dgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  #dgrid .ghead:first-child{margin-top:2px}
   .dbtn{border:1.5px solid var(--rand);background:var(--wit);border-radius:12px;padding:10px 9px 9px;min-height:96px;cursor:pointer;
     display:flex;flex-direction:column;justify-content:space-between;gap:4px;user-select:none;-webkit-user-select:none}
   .dbtn.has{border:2px solid var(--groen);background:var(--zacht);padding:9px 8px 8px}
@@ -378,7 +379,7 @@
     <div class="stot" aria-label="Totaal open"><b id="sTot">0</b><span>open</span></div>
     <div class="slogo" id="sLogo"><img alt="" src="logo.png"></div>
   </div>
-  <div class="sbody"><div class="dgrid" id="dgrid"></div></div>
+  <div class="sbody"><div id="dgrid"></div></div>
   <div class="sfoot" id="sSum"></div>
 </div>
 

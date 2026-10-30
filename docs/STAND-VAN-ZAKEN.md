@@ -1,12 +1,12 @@
 # Stand van zaken
 
-*Laatst bijgewerkt: 30 oktober 2026 — mijlpaal 3 (offline + PWA) klaar*
+*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar, nog niet gepusht naar GitHub*
 
 ## Wat is de app?
 
 Een turflijst voor de drankenlijst van de A-kern van Racing Mechelen. Spelers, doelmannen, trainerstaf en gasten kunnen per drank geturfd worden; de app houdt totalen en afrekeningen bij.
 
-Versie 1 was één `index.html` met alle gegevens in `localStorage` (één toestel, geen login). Versie 2 (in opbouw) gebruikt **Supabase** als gedeelde database met login.
+Versie 1 was één `index.html` met alle gegevens in `localStorage` (één toestel, geen login). Versie 2 gebruikt **Supabase** als gedeelde database met login.
 
 ## Mijlpalen
 
@@ -15,7 +15,7 @@ Versie 1 was één `index.html` met alle gegevens in `localStorage` (één toest
 | 1 | Datamodel + RLS (Supabase) | ✅ klaar |
 | 2 | UI omgebouwd naar Supabase | ✅ klaar |
 | 3 | Offline + PWA | ✅ klaar |
-| 4 | GitHub Action (keep-alive + export) | ⏳ |
+| 4 | GitHub Action (keep-alive + export) | ✅ klaar (secrets nog in te stellen) |
 
 ## Supabase-project
 
@@ -138,13 +138,47 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 
 **Aandachtspunt iPhone**: een app op het beginscherm heeft op iOS een eigen opslag, los van Safari. Een login-link uit de mail opent in Safari, niet in de app. Oplossing: de code uit de mail typen (zie "Wat nog openstaat": vraagt eigen SMTP), of tot dan in Safari inloggen. Op Android (Chrome) is er geen probleem.
 
+## Mijlpaal 4: GitHub Action
+
+**Bestanden**
+
+| Bestand | Inhoud |
+|---|---|
+| `.github/workflows/supabase-onderhoud.yml` | De workflow |
+| `scripts/supabase_ops.py` | Keep-alive-query en export (enkel standaard-Python + gpg) |
+| `docs/keepalive.txt` | Wordt bij elke run overschreven en gecommit |
+| `.nojekyll` | GitHub Pages serveert de bestanden zoals ze zijn (geen Jekyll) |
+
+**Wat de workflow doet** (maandag en donderdag 05:17 UTC, en met de hand via *Actions → Run workflow*):
+
+1. **Keep-alive**: haalt 1 drankje op met de service key. Mislukt dat (project gepauzeerd, key fout, netwerk), dan faalt de run met een `::error`-melding die uitlegt wat te doen → GitHub stuurt een mail.
+2. **Export**: alle 6 tabellen in één JSON-bestand, versleuteld met gpg (AES256), bewaard als artefact (90 dagen). In de log staan enkel aantallen rijen.
+3. **Keep-alive-commit**: schrijft datum + resultaat in `docs/keepalive.txt` en commit dat met de `GITHUB_TOKEN` (`permissions: contents: write`). Gebeurt **ook als stap 1 of 2 faalde**, zodat GitHub de geplande workflow niet uitschakelt na 60 dagen zonder activiteit (dan zou je net geen foutmails meer krijgen).
+
+**Beslissingen**
+
+- **Twee keer per week i.p.v. wekelijks.** Supabase pauzeert een gratis project na 7 dagen zonder activiteit, en GitHub start geplande runs soms uren te laat. Een wekelijkse run zit dus precies op de grens.
+- **Export versleuteld.** De repo is publiek; artefacten van een publieke repo kan iedereen met een GitHub-account downloaden. Zonder `BACKUP_PASSPHRASE` weigert de workflow te exporteren (en faalt de run), in plaats van onversleuteld te bewaren.
+- **Python i.p.v. bash + jq**: makkelijker lokaal te testen (ook op Windows). De nieuwe `sb_secret_...`-keys en de oude `service_role`-JWT werken allebei.
+- De service key staat **enkel** als GitHub-secret, nooit in de repo of de frontend.
+
+**Getest** (lokaal): ontbrekende secret, key zonder rechten (HTTP 401), onbestaand project (DNS-fout) en ontbrekend export-wachtwoord geven elk een duidelijke `::error` en exitcode 1. De succesroute is getest met een tijdelijk beheerders-token i.p.v. de service key; de versleutelde export werd daarna met `gpg --decrypt` correct ingelezen. De workflow zelf heeft nog niet op GitHub gedraaid (eerst pushen en secrets instellen).
+
 ## Wat nog openstaat
 
-- Mijlpaal 4 (zie tabel).
-- **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (2 mails/uur is te weinig). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail.
-- **Eerste beheerder aanduiden** na de eerste login (SQL in de README).
+1. **Pushen naar GitHub** (wacht op toestemming van de eigenaar).
+2. **GitHub Pages aanzetten**: *Settings → Pages* → Deploy from a branch → `main` / root (zie README).
+3. **Secrets instellen**: `SUPABASE_SERVICE_ROLE_KEY` en `BACKUP_PASSPHRASE` (zie README), daarna de workflow één keer met de hand starten en controleren dat hij groen is en een commit maakt.
+4. **Eerste beheerder aanduiden**: inloggen in de app, daarna de SQL uit de README.
+5. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
+6. Spelers toevoegen in de app (Beheer → + Speler), met e-mailadres voor wie "Mijn rekening" moet kunnen zien. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
 
-## Hoe verder
+**Mogelijke uitbreidingen** (niet gevraagd, niet gebouwd): prijzen per drankje en bedragen bij afrekenen; beheerders aanduiden vanuit de app; een rol "turver" die enkel mag turven.
 
-1. Mijlpaal 4: GitHub Action voor keep-alive en wekelijkse export.
-2. Na elke wijziging aan het datamodel: nieuwe migratie in `supabase/migrations/`, `supabase db push`, en de RLS-test opnieuw draaien.
+## Hoe verder (voor wie dit oppikt)
+
+- Lees eerst de README (setup) en dan dit document van boven naar onder.
+- Lokaal draaien: `python -m http.server 5500` en open http://localhost:5500/.
+- Datamodel wijzigen: nieuwe migratie in `supabase/migrations/`, `supabase db push`, daarna `supabase db query --linked -f supabase/tests/rls_test.sql` (alle rijen `ok = true`) en `python supabase/tests/anon_http_test.py`.
+- Frontend wijzigen: `index.html` (opmaak) en `app.js` (logica). Test op een smal scherm (± 390 px breed). Verhoog `VERSION` in `sw.js` bij grote wijzigingen.
+- Auth-instellingen: wijzig `supabase/config.toml`, draai `supabase config diff` en dan `supabase config push`.

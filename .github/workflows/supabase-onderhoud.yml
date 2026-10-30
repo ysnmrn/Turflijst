@@ -1,0 +1,63 @@
+name: Supabase onderhoud (keep-alive + export)
+
+# Twee keer per week: het gratis Supabase-project pauzeert na 7 dagen zonder activiteit,
+# en GitHub start geplande runs soms met vertraging. Elke run doet:
+#   1. een lichte query (keep-alive) - faalt met een duidelijke melding als Supabase niet antwoordt
+#   2. een versleutelde export van alle tabellen, bewaard als artefact (90 dagen)
+#   3. een kleine commit (docs/keepalive.txt), zodat GitHub deze geplande workflow
+#      niet uitzet na 60 dagen zonder activiteit in de repo.
+on:
+  schedule:
+    - cron: '17 5 * * 1,4'   # maandag en donderdag, 05:17 UTC
+  workflow_dispatch:          # ook met de hand te starten (tab Actions)
+
+permissions:
+  contents: write             # nodig voor de keep-alive-commit
+
+concurrency:
+  group: supabase-onderhoud
+  cancel-in-progress: false
+
+jobs:
+  onderhoud:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://cwzntyygjgnikphbfpei.supabase.co' }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Keep-alive query
+        id: keepalive
+        run: python3 scripts/supabase_ops.py keepalive
+
+      - name: Export van alle tabellen (versleuteld)
+        id: export
+        run: python3 scripts/supabase_ops.py export export
+
+      - name: Export bewaren als artefact
+        if: steps.export.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: turflijst-export-${{ github.run_number }}
+          path: export/*.json.gpg
+          retention-days: 90
+          if-no-files-found: error
+
+      # Altijd committen, ook als Supabase faalde: anders zet GitHub de workflow na 60 dagen uit
+      # en krijg je net geen meldingen meer. De run zelf blijft dan wel "failed" (mail van GitHub).
+      - name: Keep-alive-commit
+        if: always()
+        run: |
+          {
+            echo "Laatste run van de onderhouds-workflow: $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo "Keep-alive: ${{ steps.keepalive.outcome }}"
+            echo "Export: ${{ steps.export.outcome }}"
+          } > docs/keepalive.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/keepalive.txt
+          git commit -m "Keep-alive $(date -u +%F)" || echo "Niets te committen"
+          git push

@@ -369,11 +369,13 @@ function renderApp() {
     showView('laden'); renderStatus(); return;
   }
   const beh = S.rol === 'beheerder';
+  const mine = S.mine.players.length > 0;
   const tabs = beh
-    ? [['turf', '✏️', 'Turven'], ['over', '📋', 'Overzicht'], ...(S.mine.players.length ? [['mijn', '🧾', 'Mijn rekening']] : []), ['set', '⚙️', 'Beheer']]
+    ? [['turf', 'turf', 'Turven'], ['over', 'over', 'Overzicht'], ...(mine ? [['mijn', 'mijn', 'Rekening']] : []), ['set', 'set', 'Beheer']]
     : [];
   const nav = $('#nav');
-  nav.innerHTML = tabs.map(([v, ic, t]) => `<button data-v="${v}"><span class="ic">${ic}</span>${t}</button>`).join('');
+  // Met 4 tabs is er op 360px geen plaats voor icoon + tekst: dan enkel tekst.
+  nav.innerHTML = tabs.map(([v, ic, t]) => `<button data-v="${v}">${tabs.length < 4 ? ICONS[ic] : ''}${t}</button>`).join('');
   nav.hidden = !tabs.length; document.body.classList.toggle('nonav', !tabs.length);
   $$('#nav button').forEach(b => { b.onclick = () => go(b.dataset.v); });
   $('#mijnAcc').hidden = beh;
@@ -421,8 +423,19 @@ function fmtDate(ts, withTime = true) {
   return d.toLocaleString('nl-BE', o);
 }
 
+/* lijn-iconen voor de onderbalk (scherper dan emoji in fel licht) */
+const svg = d => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICONS = {
+  turf: svg('<path d="M5 4v16M9.5 4v16M14 4v16M18.5 4v16M3 15l18-6"/>'),
+  over: svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'),
+  mijn: svg('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),
+  set: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'),
+};
+
 /* ------------------------------------------------------------------ turven */
 $('#q').oninput = renderGrid;
+const GROUP_KEY = 'turflijst-groep';
+let curGroup = (() => { try { return localStorage.getItem(GROUP_KEY); } catch (e) { return null; } })();
 function groupedPlayers(list) {
   const gs = [...S.groups].sort(byVolgorde);
   const out = gs.map(g => ({ g, ps: list.filter(p => p.group_id === g.id).sort(byNaam) }));
@@ -430,24 +443,52 @@ function groupedPlayers(list) {
   if (rest.length) out.push({ g: { id: null, naam: 'Zonder groep' }, ps: rest.sort(byNaam) });
   return out;
 }
+/* Turven: groepen als pillen, één groep tegelijk. Bij zoeken: resultaten uit alle groepen. */
 function renderGrid() {
   const q = $('#q').value.trim().toLowerCase();
-  const list = S.players.filter(p => p.actief && p.naam.toLowerCase().includes(q));
+  const gs = [...S.groups].sort(byVolgorde);
+  if (!gs.some(g => g.id === curGroup)) curGroup = gs.length ? gs[0].id : null;
   const cnt = countsBy(eff(), 'player_id');
   const gg = guestGroup();
+
+  $('#gpills').innerHTML = gs.map(g => `<button class="pill${!q && g.id === curGroup ? ' on' : ''}" role="tab"
+      aria-selected="${!q && g.id === curGroup}" data-g="${g.id}">${esc(g.naam)}</button>`).join('');
+  $$('#gpills .pill').forEach(b => {
+    b.onclick = () => {
+      curGroup = b.dataset.g;
+      try { localStorage.setItem(GROUP_KEY, curGroup); } catch (e) { /* niets */ }
+      $('#q').value = ''; renderGrid();
+    };
+  });
+
+  const card = p => {
+    const t = cnt[p.id] || 0;
+    return `<button class="pcard${t ? ' has' : ''}" data-p="${p.id}"><span class="nm">${esc(p.naam)}</span>${t ? `<span class="cnt" aria-label="${t} open">${t}</span>` : ''}</button>`;
+  };
+  const section = (g, ps, extra = '') => {
+    const open = ps.reduce((n, p) => n + (cnt[p.id] || 0), 0);
+    return `<div class="ghead">${esc(g.naam)}<span class="c">${open} open</span></div>
+      <div class="pgrid">${ps.map(card).join('')}${extra}</div>`;
+  };
+
   let h = '';
-  for (const { g, ps } of groupedPlayers(list)) {
+  if (q) {
+    const list = S.players.filter(p => p.actief && p.naam.toLowerCase().includes(q));
+    for (const { g, ps } of groupedPlayers(list)) if (ps.length) h += section(g, ps);
+    if (!h) h = '<div class="empty">Geen speler gevonden.</div>';
+  } else if (curGroup) {
+    const g = gs.find(x => x.id === curGroup);
+    const ps = S.players.filter(p => p.actief && p.group_id === g.id).sort(byNaam);
     const isGuest = gg && g.id === gg.id;
-    if (!ps.length && !(isGuest && !q)) continue;
-    h += `<div class="grp">${esc(g.naam)}</div>` + ps.map(p => {
-      const t = cnt[p.id] || 0;
-      return `<button class="pbtn" data-p="${p.id}">${esc(p.naam)}${t ? `<span class="cnt">${t}</span>` : ''}</button>`;
-    }).join('');
-    if (isGuest && !q) h += '<button class="pbtn addguest" id="addGuest">+ Gast toevoegen</button>';
+    h = section(g, ps, isGuest ? '<button class="pcard addguest" id="addGuest">+ Gast toevoegen</button>' : '');
+    if (!ps.length && !isGuest) {
+      h += `<div class="empty">${S.players.length ? 'Nog geen spelers in deze groep.' : 'Nog geen spelers. Voeg ze toe bij <b>Beheer</b>.'}</div>`;
+    }
+  } else {
+    h = '<div class="empty">Nog geen groepen. Voeg ze toe bij <b>Beheer</b>.</div>';
   }
-  if (!S.players.length && !q) h = `<div class="empty" style="grid-column:1/-1">Nog geen spelers. Voeg ze toe bij <b>Beheer</b>.</div>` + h;
-  $('#pgrid').innerHTML = h || '<div class="empty" style="grid-column:1/-1">Geen speler gevonden.</div>';
-  $$('#pgrid .pbtn[data-p]').forEach(b => { b.onclick = () => openSheet(b.dataset.p); });
+  $('#pgrid').innerHTML = h;
+  $$('#pgrid .pcard[data-p]').forEach(b => { b.onclick = () => openSheet(b.dataset.p); });
   const ag = $('#addGuest'); if (ag) ag.onclick = addGuest;
   renderSub();
 }
@@ -469,14 +510,25 @@ function addGuest() {
 }
 
 let cur = null;
-function openSheet(pid) { cur = pid; renderSheet(); $('#scrim').classList.add('on'); $('#sheet').classList.add('on'); }
-function closeSheet() { cur = null; $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); renderLight(); }
-$('#scrim').onclick = closeSheet; $('#sClose').onclick = closeSheet;
+function openSheet(pid) {
+  cur = pid; renderSheet();
+  $('#sheet').classList.add('on'); document.body.classList.add('lock');
+  $('#sheet .sbody').scrollTop = 0;
+}
+function closeSheet() {
+  cur = null; $('#sheet').classList.remove('on'); document.body.classList.remove('lock');
+  renderLight();
+}
+$('#sClose').onclick = closeSheet;
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && cur && !$('#dlg').classList.contains('on')) closeSheet(); });
 
 function renderSheet() {
   const p = pById(cur); if (!p) return closeSheet();
   $('#sName').textContent = p.naam + (p.actief ? '' : ' (archief)');
+  const g = S.groups.find(x => x.id === p.group_id);
+  $('#sGrp').textContent = g ? g.naam : '';
   const open = playerOpen(cur), c = countsBy(open, 'drink_id');
+  $('#sTot').textContent = open.length;
   const ds = S.drinks.filter(d => d.actief || c[d.id]).sort(byVolgorde);
   $('#dgrid').innerHTML = ds.map(d => `<div class="dbtn${c[d.id] ? ' has' : ''}${d.actief ? '' : ' arch'}" data-d="${d.id}" role="button" tabindex="0">
       <span class="nm">${esc(d.naam)}</span>
@@ -489,10 +541,10 @@ function renderSheet() {
   $$('#dgrid .minus').forEach(b => { b.onclick = () => removeLast(cur, b.dataset.m); });
   const t = open.length, pend = open.filter(e => e.pending).length;
   const items = ds.filter(d => c[d.id]).map(d => `<span class="chip">${c[d.id]}× ${esc(d.naam)}</span>`).join('');
-  $('#sSum').innerHTML = t ? `<h3>Open: ${plural(t, 'drankje', 'drankjes')}</h3><div class="chips">${items}</div>
-    ${pend ? `<p class="muted" style="margin:0 0 10px">${pend} nog niet gesynchroniseerd.</p>` : ''}
-    <button class="btn warn small" id="sSettle">Afrekenen</button>`
-    : `<span class="muted">Niets open voor ${esc(p.naam)}.</span>`;
+  $('#sSum').innerHTML = t ? `<div class="chips">${items}</div>
+    ${pend ? `<p class="pend">${pend} nog niet gesynchroniseerd.</p>` : ''}
+    <button class="settle" id="sSettle">Afrekenen (${t})</button>`
+    : `<p class="muted" style="margin:4px auto;text-align:center">Niets open voor ${esc(p.naam)}. Tik op een drankje om te turven.</p>`;
   const sbtn = $('#sSettle'); if (sbtn) sbtn.onclick = () => settle(cur);
 }
 
@@ -895,12 +947,16 @@ async function importV1(d) {
 }
 
 /* ------------------------------------------------------------------ logo (enkel op dit toestel) */
+/* Standaard het clublogo (logo.png); een eigen logo op dit toestel gaat voor. Lukt laden niet: "RM". */
 function renderLogo() {
-  const el = $('#logo');
   let logo = null; try { logo = localStorage.getItem(LOGO_KEY); } catch (e) { /* niets */ }
-  if (logo) { el.innerHTML = `<img alt="Logo" src="${esc(logo)}">`; return; }
-  el.innerHTML = '<span>RM</span>';
-  const img = new Image(); img.alt = 'Logo'; img.onload = () => { el.innerHTML = ''; el.appendChild(img); }; img.src = 'logo.png';
+  $$('#logo, #sLogo, .loginlogo .logo').forEach(el => {
+    const img = new Image();
+    img.alt = el.id === 'sLogo' ? '' : 'Racing Mechelen';
+    img.onerror = () => { el.innerHTML = '<span>RM</span>'; };
+    img.src = logo || 'logo.png';
+    el.replaceChildren(img);
+  });
 }
 $('#fLogo').onchange = e => {
   const f = e.target.files[0]; if (!f) return;

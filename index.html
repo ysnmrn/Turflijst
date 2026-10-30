@@ -3,158 +3,229 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b6b34">
+<meta name="theme-color" content="#007852">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Turflijst">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png" type="image/png">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/favicon-48.png" sizes="48x48" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/barlow-500.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/barlow-condensed-700.woff2" as="font" type="font/woff2" crossorigin>
 <title>Drankenlijst A-kern – Racing Mechelen</title>
 <style>
+  /* ---------------------------------------------------------------- fonts (zelf gehost, zie fonts/BRON.txt) */
+  @font-face{font-family:Barlow;font-weight:400;font-style:normal;font-display:swap;src:url(fonts/barlow-400.woff2) format("woff2")}
+  @font-face{font-family:Barlow;font-weight:500;font-style:normal;font-display:swap;src:url(fonts/barlow-500.woff2) format("woff2")}
+  @font-face{font-family:Barlow;font-weight:600;font-style:normal;font-display:swap;src:url(fonts/barlow-600.woff2) format("woff2")}
+  @font-face{font-family:Barlow;font-weight:700;font-style:normal;font-display:swap;src:url(fonts/barlow-700.woff2) format("woff2")}
+  @font-face{font-family:"Barlow Condensed";font-weight:600;font-style:normal;font-display:swap;src:url(fonts/barlow-condensed-600.woff2) format("woff2")}
+  @font-face{font-family:"Barlow Condensed";font-weight:700;font-style:normal;font-display:swap;src:url(fonts/barlow-condensed-700.woff2) format("woff2")}
+
+  /* ---------------------------------------------------------------- kleuren (look "D") */
   :root{
-    --bg:#f3f6f3; --card:#fff; --ink:#132018; --muted:#5f6d64; --line:#dde6df;
-    --acc:#0b6b34; --acc2:#0e8a43; --accsoft:#e2f3e8; --deep:#06401f; --warn:#b42318; --warnsoft:#fdecea;
+    --groen:#007852;   /* clubgroen */
+    --streep:#0a8a5f;  /* lichtere streep in de kop */
+    --donker:#00553a;
+    --zacht:#e3f2ea;   /* zacht groen */
+    --bg:#f4f7f5;      /* achtergrond */
+    --rand:#d8e4dc;
+    --tekst:#13201a;
+    --grijs:#4f5e55;   /* grijze tekst */
+    --rood:#b42318;    /* afrekenen */
+    --roodzacht:#fdecea;
+    --wit:#fff;
     --r:14px;
+    --f:Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --fc:"Barlow Condensed","Arial Narrow",Barlow,system-ui,sans-serif;
+    --shirt:repeating-linear-gradient(90deg,var(--groen) 0 30px,var(--streep) 30px 60px);
+    /* wit op de lichte streep haalt 4.36:1; een donkergroene rand rond kleine letters maakt ze overal leesbaar */
+    --halo:0 0 1px var(--donker),0 1px 2px var(--donker),0 0 3px rgba(0,85,58,.7);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   [hidden]{display:none!important}
-  html,body{margin:0;background:var(--bg);color:var(--ink);
-    font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  html,body{margin:0;background:var(--bg);color:var(--tekst);font:500 16px/1.4 var(--f)}
+  body{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
   body.nonav{padding-bottom:calc(20px + env(safe-area-inset-bottom))}
-  header{position:sticky;top:0;z-index:5;color:#fff;display:flex;align-items:center;gap:12px;
-    padding:calc(12px + env(safe-area-inset-top)) 16px 14px;
-    background:repeating-linear-gradient(90deg,var(--acc) 0 34px,var(--acc2) 34px 68px);
-    border-bottom:4px solid #fff;box-shadow:0 2px 0 var(--acc)}
-  header .logo{width:46px;height:46px;border-radius:50%;background:#fff;flex:none;display:flex;align-items:center;justify-content:center;
-    overflow:hidden;box-shadow:0 0 0 2px #fff,0 2px 6px rgba(0,0,0,.25)}
-  header .logo img{width:100%;height:100%;object-fit:contain}
-  header .logo span{color:var(--acc);font-weight:800;font-size:15px;letter-spacing:.5px}
-  header .ttl{min-width:0;flex:1}
-  header .club{font-size:12px;text-transform:uppercase;letter-spacing:1.4px;font-weight:700;opacity:.9}
-  header h1{margin:0;font-size:19px;font-weight:750;letter-spacing:.2px;line-height:1.2}
-  header .sub{font-size:13px;opacity:.85}
-  .sync{flex:none;align-self:flex-start;margin-top:2px;border:0;border-radius:999px;padding:5px 10px;font:inherit;font-size:12px;font-weight:700;
-    background:rgba(255,255,255,.95);color:var(--acc);cursor:pointer;display:flex;align-items:center;gap:6px;max-width:44vw;white-space:nowrap}
-  .sync i{width:8px;height:8px;border-radius:50%;background:var(--acc2);flex:none}
-  .sync.off{color:#7a4b00}.sync.off i{background:#e0a100}
-  .sync.busy i{background:var(--acc2);animation:pulse 1s infinite}
-  .sync.err{color:var(--warn)}.sync.err i{background:var(--warn)}
+  body.lock{overflow:hidden}
+  button,input,select,textarea{font-family:inherit}
+  :focus-visible{outline:3px solid var(--donker);outline-offset:2px}
+
+  /* ---------------------------------------------------------------- kop */
+  header.hdr{position:sticky;top:0;z-index:5;color:var(--wit);display:flex;align-items:center;gap:12px;
+    padding:calc(12px + env(safe-area-inset-top)) 14px 12px;background:var(--shirt);border-bottom:4px solid var(--wit);
+    box-shadow:0 1px 0 var(--rand)}
+  .logo{width:54px;height:54px;border-radius:12px;background:var(--wit);flex:none;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+  .logo img{width:46px;height:46px;object-fit:contain}
+  .logo span{color:var(--groen);font:700 18px var(--fc)}
+  .ttl{min-width:0;flex:1}
+  .club{font-size:12px;text-transform:uppercase;letter-spacing:1.6px;font-weight:700;text-shadow:var(--halo)}
+  h1{margin:0;font:700 25px/1.05 var(--fc);letter-spacing:.2px;text-shadow:var(--halo);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sub{font-size:13px;font-weight:600;text-shadow:var(--halo)}
+  .sync{flex:none;align-self:flex-start;border:0;border-radius:999px;min-height:32px;padding:4px 12px;font:700 13px var(--f);
+    background:var(--wit);color:var(--groen);cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .sync i{width:9px;height:9px;border-radius:50%;background:var(--groen);flex:none}
+  .sync.off{color:#7a4b00}.sync.off i{background:#c98a00}
+  .sync.busy i{animation:pulse 1s infinite}
+  .sync.err{color:var(--rood)}.sync.err i{background:var(--rood)}
   @keyframes pulse{50%{opacity:.25}}
-  .grp{grid-column:1/-1;margin:10px 2px -2px;font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:1.2px;color:var(--acc);
-    display:flex;align-items:center;gap:8px}
-  .grp:after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--acc),transparent)}
-  .grp:first-child{margin-top:0}
-  .addguest{border:2px dashed var(--acc);color:var(--acc);background:transparent}
-  tr.gh td{background:var(--accsoft)!important;color:var(--acc);font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:1px;text-align:left}
+
+  /* ---------------------------------------------------------------- algemeen */
   main{padding:14px 14px 24px;max-width:720px;margin:0 auto}
   .view{display:none}.view.on{display:block}
-  input[type=search],input[type=text],input[type=email],input[type=month],input[type=date],select,textarea{width:100%;font:inherit;padding:12px 14px;border:1px solid var(--line);
-    border-radius:12px;background:#fff;color:var(--ink)}
+  input[type=search],input[type=text],input[type=email],input[type=month],input[type=date],select,textarea{width:100%;font:500 16px var(--f);
+    min-height:48px;padding:11px 14px;border:1.5px solid var(--rand);border-radius:12px;background:var(--wit);color:var(--tekst)}
+  input::placeholder{color:var(--grijs);opacity:1}
+  input:focus,select:focus{border-color:var(--groen);outline:none;box-shadow:0 0 0 3px var(--zacht)}
   select{appearance:auto}
-  textarea{min-height:140px;resize:vertical}
-  label.f{display:block;font-size:13px;font-weight:650;color:var(--muted);margin:10px 0 4px}
-  label.chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:600}
-  label.chk input{width:20px;height:20px;accent-color:var(--acc)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px}
-  .pbtn{position:relative;border:1px solid var(--line);background:var(--card);border-radius:var(--r);
-    padding:16px 12px;min-height:64px;text-align:left;font:inherit;font-weight:600;color:var(--ink);cursor:pointer}
-  .pbtn{border-left:4px solid var(--acc)}
-  .pbtn.addguest{border:2px dashed var(--acc)}
-  .pbtn:active{transform:scale(.98);background:var(--accsoft)}
-  .pbtn .cnt{position:absolute;top:8px;right:10px;font-size:12px;font-weight:700;color:var(--acc);
-    background:var(--accsoft);border-radius:999px;padding:1px 8px}
-  .empty{color:var(--muted);text-align:center;padding:30px 10px}
-  nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#fff;border-top:1px solid var(--line);
-    padding-bottom:env(safe-area-inset-bottom)}
-  nav button{flex:1;border:0;background:none;font:inherit;font-size:13px;padding:10px 0 12px;color:var(--muted);cursor:pointer}
-  nav button .ic{display:block;font-size:20px;line-height:1.2}
-  nav button.on{color:var(--acc);font-weight:650}
-  .btn{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:600;cursor:pointer;background:var(--acc);color:#fff}
+  label.f{display:block;font-size:14px;font-weight:600;color:var(--grijs);margin:12px 0 4px}
+  label.chk{display:flex;align-items:center;gap:10px;margin-top:12px;font-weight:600;min-height:32px}
+  label.chk input{width:22px;height:22px;accent-color:var(--groen)}
+  .btn{border:0;border-radius:12px;min-height:48px;padding:10px 18px;font:700 16px var(--f);cursor:pointer;background:var(--groen);color:var(--wit)}
+  .btn:active{background:var(--donker)}
   .btn:disabled{opacity:.5;cursor:default}
-  .btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
-  .btn.warn{background:var(--warn)}
-  .btn.small{padding:8px 12px;font-size:14px}
+  .btn.sec{background:var(--wit);color:var(--groen);border:1.5px solid var(--rand)}
+  .btn.warn{background:var(--rood)}
+  .btn.small{min-height:40px;padding:8px 14px;font-size:15px}
   .btn.full{width:100%;margin-top:10px}
   .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .row.sb{justify-content:space-between}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
-  .card h3{margin:0 0 6px;font-size:16px}
-  .muted{color:var(--muted);font-size:14px}
+  .card{background:var(--wit);border:1px solid var(--rand);border-radius:var(--r);padding:16px;margin-bottom:12px}
+  .card h3{margin:0 0 6px;font:700 21px/1.15 var(--fc)}
+  .muted{color:var(--grijs);font-size:15px}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-  .chip{background:var(--accsoft);color:var(--acc);border-radius:999px;padding:3px 10px;font-size:14px;font-weight:600}
-  .chip.grey{background:#eef0ee;color:var(--muted)}
-  h2{font-size:17px;margin:18px 0 8px}
-  .big{font-size:28px;font-weight:800;color:var(--acc);line-height:1.1}
-  /* sheet */
-  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20;display:none}
-  .scrim.on{display:block}
-  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--bg);border-radius:20px 20px 0 0;
-    max-height:88vh;overflow:auto;padding:16px 14px calc(18px + env(safe-area-inset-bottom));
-    transform:translateY(105%);transition:transform .2s ease;max-width:720px;margin:0 auto}
-  .sheet.on{transform:none}
-  .sheet .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}
-  .sheet .top h2{margin:0;font-size:20px}
+  .chip{background:var(--zacht);color:var(--donker);border-radius:999px;padding:4px 11px;font-size:15px;font-weight:700}
+  h2{font:700 22px var(--fc);margin:20px 0 8px}
+  .big{font:700 40px/1 var(--fc);color:var(--groen)}
+  .empty{color:var(--grijs);text-align:center;padding:30px 10px}
+  .banner{background:var(--roodzacht);color:var(--rood);border-radius:12px;padding:10px 12px;font-size:15px;font-weight:600;margin-bottom:12px}
+
+  /* ---------------------------------------------------------------- turven */
+  .pills{display:flex;gap:8px;overflow-x:auto;margin:12px -14px 0;padding:2px 14px 4px;scrollbar-width:none}
+  .pills::-webkit-scrollbar{display:none}
+  .pill{flex:none;min-height:40px;padding:6px 16px;border-radius:999px;border:1.5px solid var(--rand);background:var(--wit);color:var(--tekst);
+    font:700 15px var(--f);cursor:pointer;white-space:nowrap}
+  .pill.on{background:var(--groen);border-color:var(--groen);color:var(--wit)}
+  .pill .n{font-weight:600;opacity:.85}
+  .ghead{display:flex;align-items:center;gap:10px;margin:16px 2px 8px;font:700 17px var(--fc);text-transform:uppercase;letter-spacing:1px;color:var(--groen)}
+  .ghead:after{content:"";order:1;flex:1;height:2px;background:var(--groen);opacity:.35}
+  .ghead .c{order:2;font:600 15px var(--f);text-transform:none;letter-spacing:0;color:var(--grijs)}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pcard{position:relative;display:flex;align-items:center;gap:8px;min-height:60px;padding:10px 12px 10px 14px;border:1.5px solid var(--rand);
+    border-radius:var(--r);background:var(--wit);color:var(--tekst);font:700 17px/1.2 var(--f);text-align:left;cursor:pointer;word-break:break-word}
+  .pcard .nm{flex:1;min-width:0}
+  .pcard.has{border:2px solid var(--groen);padding:9px 11px 9px 13px}
+  .pcard .cnt{flex:none;min-width:30px;height:30px;padding:0 7px;border-radius:999px;background:var(--groen);color:var(--wit);
+    display:flex;align-items:center;justify-content:center;font:700 18px var(--fc)}
+  .pcard:active{transform:scale(.98);background:var(--zacht)}
+  .pcard.addguest{border:2px dashed var(--groen);color:var(--groen);background:transparent;justify-content:center}
+
+  /* ---------------------------------------------------------------- drankjesscherm (speler) */
+  .screen{position:fixed;inset:0;z-index:21;background:var(--bg);display:flex;flex-direction:column;
+    transform:translateX(104%);transition:transform .22s ease;visibility:hidden}
+  .screen.on{transform:none;visibility:visible}
+  .shead{flex:none;display:flex;align-items:center;gap:10px;color:var(--wit);background:var(--shirt);border-bottom:4px solid var(--wit);
+    padding:calc(10px + env(safe-area-inset-top)) 12px 10px;box-shadow:0 1px 0 var(--rand)}
+  .back{flex:none;width:44px;height:44px;border-radius:12px;border:0;background:var(--wit);color:var(--groen);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+  .back svg{width:24px;height:24px}
+  .who{flex:1;min-width:0}
+  .sgrp{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;text-shadow:var(--halo)}
+  .who h2{margin:0;font:700 25px/1.02 var(--fc);text-shadow:var(--halo);overflow:hidden;overflow-wrap:anywhere;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .stot{flex:none;min-width:52px;height:48px;padding:0 8px;border-radius:12px;background:var(--wit);color:var(--groen);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+  .stot b{font:700 24px var(--fc)}
+  .stot span{font-size:11px;font-weight:700;color:var(--grijs);text-transform:uppercase;letter-spacing:.6px}
+  .slogo{flex:none;width:40px;height:40px;border-radius:10px;background:var(--wit);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .slogo img{width:34px;height:34px;object-fit:contain}
+  .slogo span{color:var(--groen);font:700 14px var(--fc)}
+  .sbody{flex:1;overflow:auto;padding:14px 12px;-webkit-overflow-scrolling:touch}
+  .sbody>*{max-width:720px;margin-left:auto;margin-right:auto}
   .dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  .dbtn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 9px;font:inherit;font-size:14px;
-    text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-height:82px;user-select:none}
-  .dbtn.has{border-color:var(--acc);background:var(--accsoft)}
-  .dbtn:active{background:var(--accsoft)}
-  .dbtn .nm{font-weight:650;line-height:1.2}
-  .dbtn .ct{display:flex;justify-content:space-between;align-items:center}
-  .dbtn .num{font-size:21px;font-weight:750;color:var(--acc)}
-  .dbtn.arch .nm:after{content:" (archief)";font-weight:400;color:var(--muted)}
-  .minus{border:1px solid var(--line);background:#fff;border-radius:9px;width:32px;height:30px;font-size:20px;
-    line-height:1;color:var(--muted);cursor:pointer}
-  .minus:disabled{opacity:.3}
-  /* table */
-  .tblwrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:#fff;max-height:65vh}
-  table{border-collapse:separate;border-spacing:0;font-size:14px;min-width:100%}
-  th,td{padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:center}
-  thead th{position:sticky;top:0;background:#fafaf7;z-index:2;font-weight:650}
-  th:first-child,td:first-child{position:sticky;left:0;background:#fff;text-align:left;z-index:1;font-weight:600}
-  thead th:first-child{z-index:3;background:#fafaf7}
-  td.z{color:#c9c7bf}
-  td.tot,th.tot{font-weight:750;color:var(--acc)}
+  .dbtn{border:1.5px solid var(--rand);background:var(--wit);border-radius:12px;padding:10px 9px 9px;min-height:96px;cursor:pointer;
+    display:flex;flex-direction:column;justify-content:space-between;gap:4px;user-select:none;-webkit-user-select:none}
+  .dbtn.has{border:2px solid var(--groen);background:var(--zacht);padding:9px 8px 8px}
+  .dbtn:active{background:var(--zacht)}
+  .dbtn .nm{font-weight:700;font-size:15px;line-height:1.15;color:var(--tekst)}
+  .dbtn.arch .nm:after{content:" (archief)";font-weight:500;color:var(--grijs)}
+  .dbtn .ct{display:flex;justify-content:space-between;align-items:flex-end}
+  .dbtn .num{font:700 34px/1 var(--fc);color:var(--groen)}
+  .minus{border:1.5px solid var(--rand);background:var(--wit);border-radius:10px;width:40px;height:38px;font:700 22px/1 var(--f);
+    color:var(--tekst);cursor:pointer}
+  .minus:disabled{opacity:.3;cursor:default}
+  .sfoot{flex:none;background:var(--wit);border-top:1px solid var(--rand);padding:10px 12px calc(12px + env(safe-area-inset-bottom))}
+  .sfoot>*{max-width:720px;margin-left:auto;margin-right:auto}
+  .sfoot .chips{margin:0 auto 10px}
+  .settle{display:block;width:100%;min-height:52px;border:0;border-radius:12px;background:var(--rood);color:var(--wit);font:700 19px var(--f);cursor:pointer}
+  .settle:active{filter:brightness(.9)}
+  .pend{font-size:14px;color:var(--grijs);margin:0 auto 8px}
+
+  /* ---------------------------------------------------------------- onderbalk */
+  nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;gap:6px;background:var(--wit);border-top:1px solid var(--rand);
+    padding:8px 8px calc(8px + env(safe-area-inset-bottom))}
+  nav button{flex:1;min-height:50px;border:0;border-radius:12px;background:none;font:600 16px var(--f);color:var(--grijs);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:6px;padding:0 4px}
+  nav button svg{width:20px;height:20px;flex:none}
+  nav button.on{background:var(--zacht);color:var(--groen);font-weight:700}
+
+  /* ---------------------------------------------------------------- overzicht */
+  .tblwrap{overflow:auto;border:1px solid var(--rand);border-radius:var(--r);background:var(--wit);max-height:65vh}
+  table{border-collapse:separate;border-spacing:0;font-size:15px;min-width:100%}
+  th,td{padding:10px;border-bottom:1px solid var(--rand);white-space:nowrap;text-align:center}
+  thead th{position:sticky;top:0;background:var(--zacht);color:var(--donker);z-index:2;font:700 16px var(--fc);letter-spacing:.3px}
+  th:first-child,td:first-child{position:sticky;left:0;background:var(--wit);text-align:left;z-index:1;font-weight:700}
+  thead th:first-child{z-index:3;background:var(--zacht)}
+  td{font-weight:600}
+  td.z{color:var(--grijs);font-weight:500}
+  td.tot,th.tot{font:700 18px var(--fc);color:var(--groen)}
+  tr.gh td{background:var(--bg)!important;color:var(--groen);font:700 14px var(--fc);text-transform:uppercase;letter-spacing:1px;text-align:left}
   tr.click{cursor:pointer}
-  /* filters */
+  tr.click:active td{background:var(--zacht)}
   .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
   .filters .wide{grid-column:1/-1}
-  .filters select,.filters input{padding:10px 12px;font-size:15px}
-  /* toast */
+  .hist .card{margin-bottom:8px}
+  .hist .card b{font-weight:700}
+
+  /* ---------------------------------------------------------------- beheer */
+  .list{list-style:none;margin:0;padding:0}
+  .list li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--rand)}
+  .list li:last-child{border-bottom:0}
+  .list li .nm{flex:1;min-width:0;cursor:pointer;font-weight:600}
+  .list li .nm small{display:block;color:var(--grijs);font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis}
+  .list li.arch .nm{color:var(--grijs)}
+  .list .sub{font:700 15px var(--fc);text-transform:uppercase;letter-spacing:1px;color:var(--groen);padding:14px 0 2px;border:0;text-shadow:none}
+  .mv{border:1.5px solid var(--rand);background:var(--wit);border-radius:10px;width:40px;height:40px;font-size:14px;color:var(--tekst);cursor:pointer}
+  .mv:disabled{opacity:.3}
+
+  /* ---------------------------------------------------------------- login */
+  .loginlogo{display:flex;justify-content:center;margin:12px 0 18px}
+  .loginlogo .logo{width:96px;height:96px;border-radius:20px;border:1px solid var(--rand);box-shadow:none}
+  .loginlogo .logo img{width:84px;height:84px}
+
+  /* ---------------------------------------------------------------- melding + dialoog */
   .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-20px);
-    width:max-content;white-space:nowrap;
-    background:#1c1f1d;color:#fff;border-radius:12px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;
-    opacity:0;pointer-events:none;transition:all .18s;z-index:60;max-width:92vw;font-size:15px}
+    width:max-content;white-space:nowrap;background:var(--tekst);color:var(--wit);border-radius:12px;padding:10px 12px 10px 16px;
+    display:flex;gap:12px;align-items:center;opacity:0;pointer-events:none;transition:all .18s;z-index:60;max-width:92vw;font-size:16px;font-weight:600;
+    box-shadow:0 4px 14px rgba(0,0,0,.25)}
   .toast.on{opacity:1;transform:translateX(-50%);pointer-events:auto}
   .toast span{overflow:hidden;text-overflow:ellipsis;min-width:0}
-  .toast button{flex:none;background:none;border:0;color:#9be2b5;font:inherit;font-weight:700;cursor:pointer;padding:4px 6px}
-  /* dialog */
-  .dlg{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4);padding:20px}
+  .toast button{flex:none;background:none;border:0;color:#9be2b5;font:700 16px var(--f);cursor:pointer;padding:6px 8px;min-height:36px}
+  .dlg{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);padding:20px}
   .dlg.on{display:flex}
-  .dlg .box{background:#fff;border-radius:16px;padding:18px;max-width:400px;width:100%;max-height:90vh;overflow:auto}
-  .dlg .box h3{margin:0 0 6px;font-size:18px}
+  .dlg .box{background:var(--wit);border-radius:16px;padding:18px;max-width:420px;width:100%;max-height:90vh;overflow:auto}
+  .dlg .box h3{margin:0 0 6px;font:700 23px var(--fc)}
   .dlg .box p{margin:0 0 16px}
   .dlg .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
-  .banner{background:var(--warnsoft);color:var(--warn);border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:12px}
-  .list li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
-  .list li:last-child{border-bottom:0}
-  .list li .nm{flex:1;min-width:0;cursor:pointer}
-  .list li .nm small{display:block;color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis}
-  .list li.arch .nm{color:var(--muted)}
-  .list .sub{font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:1px;color:var(--acc);padding:12px 0 2px;border:0}
-  .list{list-style:none;margin:0;padding:0}
-  .mv{border:1px solid var(--line);background:#fff;border-radius:9px;width:34px;height:32px;font-size:14px;color:var(--muted);cursor:pointer}
-  .mv:disabled{opacity:.3}
-  .x{border:0;background:none;color:var(--warn);font-size:14px;cursor:pointer;padding:6px}
-  .hist .card{margin-bottom:8px}
+  .x{border:0;background:none;color:var(--rood);font-size:15px;cursor:pointer;padding:6px}
 </style>
 </head>
 <body>
-<header>
-  <div class="logo" id="logo"><span>RM</span></div>
+<header class="hdr">
+  <div class="logo" id="logo"><img alt="Racing Mechelen" src="logo.png"></div>
   <div class="ttl"><div class="club">Racing Mechelen</div><h1>Drankenlijst A-kern</h1><div class="sub" id="sub"></div></div>
   <button class="sync" id="sync" hidden><i></i><span id="syncTxt"></span></button>
 </header>
@@ -168,6 +239,7 @@
 
   <!-- INLOGGEN -->
   <section class="view" id="v-login">
+    <div class="loginlogo"><div class="logo"><img alt="Racing Mechelen" src="logo.png"></div></div>
     <div class="card">
       <h3>Inloggen</h3>
       <form id="fLogin">
@@ -200,8 +272,9 @@
 
   <!-- TURVEN -->
   <section class="view" id="v-turf">
-    <input type="search" id="q" placeholder="Zoek speler…" autocomplete="off">
-    <div class="grid" id="pgrid"></div>
+    <input type="search" id="q" placeholder="Zoek speler…" autocomplete="off" aria-label="Zoek speler">
+    <div class="pills" id="gpills" role="tablist" aria-label="Groepen"></div>
+    <div id="pgrid"></div>
   </section>
 
   <!-- OVERZICHT -->
@@ -254,14 +327,14 @@
       <ul class="list" id="lGroups"></ul>
     </div>
     <div class="card">
-      <h3>Clublogo</h3>
-      <p class="muted">Kies een afbeelding van het logo. Het wordt enkel op dit toestel bewaard.</p>
+      <h3>Logo op dit toestel</h3>
+      <p class="muted">Standaard toont de app het clublogo. Hier kan je op dit toestel een ander logo kiezen.</p>
       <div class="row"><input type="file" id="fLogo" accept="image/*" style="font-size:14px;max-width:100%">
-        <button class="btn sec small" id="bLogoDel">Verwijder logo</button></div>
+        <button class="btn sec small" id="bLogoDel">Terug naar clublogo</button></div>
     </div>
     <div class="card">
       <h3>Back-up</h3>
-      <p class="muted">Alles staat online in Supabase en wordt elke week automatisch geëxporteerd. Hier kan je ook zelf een kopie downloaden.</p>
+      <p class="muted">Alles staat online in Supabase en wordt twee keer per week automatisch geëxporteerd. Hier kan je ook zelf een kopie downloaden.</p>
       <button class="btn sec small" id="bDl">Download back-up (JSON)</button>
     </div>
     <div class="card">
@@ -273,12 +346,19 @@
 
 <nav id="nav" hidden></nav>
 
-<!-- speler-sheet -->
-<div class="scrim" id="scrim"></div>
-<div class="sheet" id="sheet" role="dialog" aria-modal="true">
-  <div class="top"><h2 id="sName"></h2><button class="btn sec small" id="sClose">Klaar</button></div>
-  <div class="dgrid" id="dgrid"></div>
-  <div class="card" style="margin-top:14px" id="sSum"></div>
+<!-- drankjesscherm van één speler -->
+<div class="scrim" id="scrim" hidden></div>
+<div class="screen" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sName">
+  <div class="shead">
+    <button class="back" id="sClose" aria-label="Terug">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="who"><div class="sgrp" id="sGrp"></div><h2 id="sName"></h2></div>
+    <div class="stot" aria-label="Totaal open"><b id="sTot">0</b><span>open</span></div>
+    <div class="slogo" id="sLogo"><img alt="" src="logo.png"></div>
+  </div>
+  <div class="sbody"><div class="dgrid" id="dgrid"></div></div>
+  <div class="sfoot" id="sSum"></div>
 </div>
 
 <div class="toast" id="toast" role="status"><span id="tMsg"></span><button id="tUndo">Ongedaan</button></div>

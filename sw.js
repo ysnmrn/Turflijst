@@ -8,11 +8,14 @@
  * Verzoeken naar Supabase (ander domein) worden niet aangeraakt: de app bewaart
  * zelf haar gegevens en wachtrij in IndexedDB.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = 'turflijst-' + VERSION;
 const SHELL = [
-  './', 'index.html', 'app.js', 'config.js', 'vendor/supabase.js', 'manifest.webmanifest',
-  'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
+  './', 'index.html', 'app.js', 'config.js', 'vendor/supabase.js', 'manifest.webmanifest', 'logo.png',
+  'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
+  'icons/favicon-32.png', 'icons/favicon-48.png',
+  'fonts/barlow-400.woff2', 'fonts/barlow-500.woff2', 'fonts/barlow-600.woff2', 'fonts/barlow-700.woff2',
+  'fonts/barlow-condensed-600.woff2', 'fonts/barlow-condensed-700.woff2',
 ];
 
 self.addEventListener('install', ev => {

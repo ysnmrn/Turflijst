@@ -1,0 +1,8 @@
+Barlow en Barlow Condensed (Jeremy Tribby), SIL Open Font License 1.1 (zie OFL.txt).
+Subset 'latin', via @fontsource op npm:
+fonts/barlow-400.woff2  (22196 bytes)  @fontsource/barlow@5.3.0
+fonts/barlow-500.woff2  (22008 bytes)  @fontsource/barlow@5.3.0
+fonts/barlow-600.woff2  (22772 bytes)  @fontsource/barlow@5.3.0
+fonts/barlow-700.woff2  (22788 bytes)  @fontsource/barlow@5.3.0
+fonts/barlow-condensed-600.woff2  (22308 bytes)  @fontsource/barlow-condensed@5.3.0
+fonts/barlow-condensed-700.woff2  (22444 bytes)  @fontsource/barlow-condensed@5.3.0

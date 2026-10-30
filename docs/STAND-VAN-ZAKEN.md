@@ -1,6 +1,6 @@
 # Stand van zaken
 
-*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online*
+*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online; nieuwe look "D" klaar, nog niet gepusht*
 
 ## Wat is de app?
 
@@ -100,7 +100,7 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
   - *Turven*: spelers per groep, tik → drankjes-sheet (+1, −1, "Ongedaan"), knop *Afrekenen* met optionele opmerking. *+ Gast toevoegen* onder de groep met "gast" in de naam.
   - *Overzicht*: tabel met wat openstaat per speler; daaronder de afrekeningen, filterbaar per maand, per periode (van–tot) of alles, en per speler, met totalen per drankje.
   - *Mijn rekening*: enkel als de beheerder zelf aan een speler gekoppeld is.
-  - *Beheer*: spelers (naam, groep, e-mail, actief/archief), drankjes (naam, volgorde ▲▼, archief), groepen (naam, volgorde, verwijderen als leeg), clublogo (per toestel), back-up downloaden (JSON), uitloggen. Als er nog gegevens van versie 1 op het toestel staan, verschijnt een knop om die te importeren.
+  - *Beheer*: spelers (naam, groep, e-mail, actief/archief), drankjes (naam, volgorde ▲▼, archief), groepen (naam, volgorde, verwijderen als leeg), ander logo op dit toestel (optioneel), back-up downloaden (JSON), uitloggen. Als er nog gegevens van versie 1 op het toestel staan, verschijnt een knop om die te importeren.
 - **Speler**: enkel *Mijn rekening* (openstaand + vorige afrekeningen) en uitloggen.
 - **Login zonder gekoppelde speler**: melding "nog niet gekoppeld".
 
@@ -111,7 +111,7 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 - **Afrekenen, spelers/drankjes/groepen wijzigen en gasten toevoegen kan enkel online.** Vóór het afrekenen wordt eerst de wachtrij verstuurd, zodat de afrekening alles bevat.
 - **Statuslabel rechtsboven**: *Online*, *Sync · n*, *Offline · n* (n = wachtende turven) of *n mislukt*. Tik erop voor details en om meteen te synchroniseren.
 - **Verversen**: bij terugkeren naar de app, bij terug online komen, en elke minuut zolang de app open staat. (Geen realtime-abonnement: niet nodig voor een turflijst en spaart het gratis plan.)
-- **Logo** wordt per toestel bewaard (localStorage), zoals in versie 1. Een bestand `logo.png` naast `index.html` wordt automatisch gebruikt als er geen eigen logo gekozen is.
+- **Logo**: standaard het clublogo `logo.png`. Onder Beheer kan je op één toestel een ander logo kiezen (localStorage), zoals in versie 1.
 - **Mailsjablonen**: Supabase weigert aangepaste sjablonen op het Free-plan zolang de ingebouwde mailserver gebruikt wordt. De sjablonen staan klaar maar zijn uitgeschakeld in `config.toml`.
 
 **Getest** (Microsoft Edge headless, schermformaat 390×844, met tijdelijke testlogins die achteraf verwijderd zijn): inloggen, spelers/drankjes/groepen toevoegen en wijzigen, volgorde, groep verwijderen, turven, −1, ongedaan maken, offline turven en automatisch synchroniseren, afrekenen met opmerking, geschiedenis met alle filters, gast toevoegen, archiveren, en "Mijn rekening" als speler (ziet enkel zichzelf; schrijven wordt geweigerd).
@@ -124,7 +124,7 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 |---|---|
 | `sw.js` | Service worker: bewaart de app-bestanden zodat ze zonder internet openen |
 | `manifest.webmanifest` | Naam, kleuren en iconen voor "Zet op beginscherm" |
-| `icons/` | App-iconen (groen-wit gestreept met "RM"; gegenereerd, geen clublogo) |
+| `icons/` | App-iconen en favicons, gemaakt uit het clublogo (zie "Look D") |
 
 **Hoe het werkt**
 
@@ -164,6 +164,30 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 
 **Getest** (lokaal): ontbrekende secret, key zonder rechten (HTTP 401), onbestaand project (DNS-fout) en ontbrekend export-wachtwoord geven elk een duidelijke `::error` en exitcode 1. De succesroute is getest met een tijdelijk beheerders-token i.p.v. de service key; de versleutelde export werd daarna met `gpg --decrypt` correct ingelezen. De workflow zelf heeft nog niet op GitHub gedraaid (eerst pushen en secrets instellen).
 
+## Look "D" (30 oktober 2026)
+
+Nieuwe vormgeving. **Enkel uitzicht en weergave zijn veranderd**: datamodel, RLS, offline-wachtrij, synchronisatie, rollen en de GitHub Action zijn exact hetzelfde gebleven (de wijziging in `app.js` raakt alleen de weergavefuncties).
+
+**Wat er veranderd is**
+
+- **Kleuren** (CSS-variabelen bovenaan `index.html`): clubgroen `--groen #007852`, streep `--streep #0a8a5f`, donker `--donker #00553a`, zacht groen `--zacht #e3f2ea`, achtergrond `--bg #f4f7f5`, rand `--rand #d8e4dc`, tekst `--tekst #13201a`, grijze tekst `--grijs #4f5e55`, afrekenen `--rood #b42318`.
+- **Kop** op elk scherm: verticaal gestreept als een clubshirt (30px-strepen), 4px wit randje, logo in een wit vak van 54px, "RACING MECHELEN", "Drankenlijst A-kern" en het statuspilletje.
+- **Turven**: zoekbalk, groepen als pillen (uit de database, in hun volgorde), één groep tegelijk met kopje "GROEP ──── x open". De laatst gekozen groep wordt per toestel onthouden. Zoeken toont spelers uit alle groepen. Spelers als kaarten in 2 kolommen; met open drankjes een groene rand en een groen bolletje met het aantal. In de gastengroep een kaart "+ Gast toevoegen".
+- **Drankjes van een speler**: nu een volledig scherm (was een uitschuifpaneel) met gestreepte kop, terugknop (44px), groep, naam (max. 2 regels), wit vakje met het totaal en het logo. Tegels in 3 kolommen; tik = +1, "−" = één minder. Onderaan chips ("2× Cola") en een rode knop "Afrekenen (n)" van 52px.
+- **Onderbalk**: grote tabs (50px) met lijn-icoon; actief = zacht groen vlak met groene, vette tekst. Is de beheerder ook aan een speler gekoppeld, dan is er een 4e tab "Rekening" (dan zonder iconen, zodat het op 360px past).
+- Overzicht, Beheer, Mijn rekening en het loginscherm gebruiken dezelfde kleuren, kop en kaarten.
+
+**Logo, iconen, fonts**
+
+- `logo.png` = het clublogo (706×706, groen schild op wit), aangeleverd als `Logo-krc-mechelen.png` en hernoemd zodat de app het vanzelf gebruikt.
+- `icons/`: `icon-192.png` en `icon-512.png` (logo op wit), `icon-maskable-512.png` (logo op 56% met witte marge, valt binnen de veilige zone van Android), `apple-touch-icon.png` (180) en `favicon-32/48.png`. Gegenereerd uit `logo.png` met een headless browser.
+- `fonts/`: Barlow (400, 500, 600, 700) en Barlow Condensed (600, 700), subset *latin*, als woff2 in de repo, licentie SIL OFL (`fonts/OFL.txt`, herkomst in `fonts/BRON.txt`). Geen link naar Google Fonts: geen externe verzoeken en de fonts werken offline.
+- Service worker: cache naar `v2`; logo, iconen en fonts zitten in de cache. Wie de app al gebruikte, krijgt de nieuwe look bij de tweede keer openen.
+
+**Contrast** (WCAG, minimum 4.5:1 voor gewone tekst): alle combinaties halen dat (bv. grijze tekst op achtergrond 6.35, wit op clubgroen 5.51, clubgroen op zacht groen 4.77, wit op rood 6.57), behalve **wit op de lichte streep #0a8a5f: 4.36**. Oplossing zonder de streepkleuren te veranderen: de titel is groot en vet (daarvoor volstaat 3:1), en kleine tekst in de gestreepte kop krijgt een dunne donkergroene rand (`--halo`), zodat elke letter op #00553a staat (8.9:1).
+
+**Getest** (Edge headless, 390×800 en 360×800, met een nagebootste backend en verzonnen namen, zodat er geen echte gegevens op screenshots kwamen en niets in de live database veranderde): login, turven (pillen, groep wisselen, gastengroep, zoeken over groepen), drankjesscherm (+1, −1, totaal, chips, Afrekenen (n)), offline turven + synchroniseren, afrekenen, overzicht en geschiedenis, beheer en dialoog, Mijn rekening als speler. Gemeten: 2 kolommen spelers, 3 kolommen tegels, kaarten ≥ 60px, pillen ≥ 38px, tabs ≥ 50px, terugknop 44px, afrekenknop 52px, logo 54/46px, geen horizontaal scrollen. Offline geopend (webserver en netwerk uit): fonts en logo laden uit de cache. axe-core (contrastregel) vond 0 fouten op alle schermen.
+
 ## Online (30 oktober 2026)
 
 - **App**: https://ysnmrn.github.io/Turflijst/ — GitHub Pages, branch `main`, map `/` (root).
@@ -179,9 +203,10 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 
 ## Wat nog openstaat
 
-1. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
-2. **Spelers toevoegen** in de app (Beheer → + Speler), met e-mailadres voor wie "Mijn rekening" moet kunnen zien. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
-3. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
+1. **Nieuwe look pushen** (wacht op toestemming), daarna de site op een echte gsm in daglicht bekijken.
+2. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
+3. **Spelers toevoegen** in de app (Beheer → + Speler), met e-mailadres voor wie "Mijn rekening" moet kunnen zien. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
+4. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
 
 **Mogelijke uitbreidingen** (niet gevraagd, niet gebouwd): prijzen per drankje en bedragen bij afrekenen; beheerders aanduiden vanuit de app; een rol "turver" die enkel mag turven.
 

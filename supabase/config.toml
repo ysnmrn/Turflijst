@@ -161,7 +161,7 @@ site_url = "https://ysnmrn.github.io/Turflijst/"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:5500/**", "http://127.0.0.1:5500/**"]
+additional_redirect_urls = ["https://ysnmrn.github.io/Turflijst/**", "http://localhost:5500/**", "http://127.0.0.1:5500/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -243,6 +243,17 @@ otp_expiry = 3600
 # pass = "env(SENDGRID_API_KEY)"
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
+
+# Login-mails met link EN code (de code is nodig in de geïnstalleerde app/PWA).
+# UIT tot er eigen SMTP is ingesteld: op het Free-plan met de ingebouwde mailserver
+# weigert Supabase aangepaste sjablonen. Daarna: haal de # weg en `supabase config push`.
+# [auth.email.template.magic_link]
+# subject = "Inloggen op de turflijst"
+# content_path = "./supabase/templates/magic_link.html"
+#
+# [auth.email.template.confirmation]
+# subject = "Bevestig je e-mailadres voor de turflijst"
+# content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize email template
 # [auth.email.template.invite]

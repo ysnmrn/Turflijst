@@ -8,7 +8,7 @@
  * Verzoeken naar Supabase (ander domein) worden niet aangeraakt: de app bewaart
  * zelf haar gegevens en wachtrij in IndexedDB.
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = 'turflijst-' + VERSION;
 const SHELL = [
   './', 'index.html', 'app.js', 'config.js', 'vendor/supabase.js', 'manifest.webmanifest', 'logo.png',

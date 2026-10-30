@@ -1,5 +1,5 @@
 // Voorbeeldconfiguratie. Kopieer naar config.js en vul je eigen waarden in.
-// config.js staat in .gitignore en wordt niet gecommit.
+// config.js staat in de repo (GitHub Pages heeft het nodig); de publishable key is publiek bedoeld.
 // Gebruik enkel de publishable (of anon) key - NOOIT de secret/service_role key.
 window.TURFLIJST_CONFIG = {
   SUPABASE_URL: 'https://YOUR-PROJECT-REF.supabase.co',

@@ -1,0 +1,1 @@
+@supabase/supabase-js 2.118.0 (dist/umd/supabase.js van cdn.jsdelivr.net)

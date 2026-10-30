@@ -1,6 +1,6 @@
 # Stand van zaken
 
-*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online; look "D" online; spelers staan in de database; nieuwe lay-out (pil "Alle", nieuw Overzicht) online*
+*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online; look "D" online; spelers staan in de database; nieuwe lay-out (pil "Alle", nieuw Overzicht) online; "consumpties" met categorieën klaar (database live, app nog niet gepusht)*
 
 ## Wat is de app?
 
@@ -44,13 +44,14 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 | `20261030200100_rls.sql` | Rechten, RLS-policies, functie `afrekenen()` |
 | `20261030200200_seed_groepen_drankjes.sql` | 4 groepen en 18 drankjes (geen spelers) |
 | `20261030200300_hulpfuncties_private.sql` | Hulpfuncties naar schema `private` |
+| `20261031090000_categorie_consumpties.sql` | Kolom `drinks.categorie` + indeling, zie "Consumpties en categorieën" |
 
 **Tabellen**
 
 - `profiles(user_id, naam, rol)` — één rij per login, automatisch aangemaakt bij de eerste login (rol `speler`).
 - `groups(id, naam, volgorde)`
 - `players(id, naam, group_id, email, user_id, actief, created_at)` — wordt nooit verwijderd, enkel `actief = false`.
-- `drinks(id, naam, volgorde, actief)` — idem.
+- `drinks(id, naam, volgorde, actief, categorie)` — idem. In de app heten ze **consumpties**. `categorie` is Fris, Warm, Bier of Snacks.
 - `entries(id, player_id, drink_id, created_at, created_by, settlement_id)` — één rij = één drankje. Open zolang `settlement_id` leeg is.
 - `settlements(id, player_id, settled_at, settled_by, opmerking)`
 
@@ -171,7 +172,7 @@ Nieuwe vormgeving. **Enkel uitzicht en weergave zijn veranderd**: datamodel, RLS
 **Wat er veranderd is**
 
 - **Kleuren** (CSS-variabelen bovenaan `index.html`): clubgroen `--groen #007852`, streep `--streep #0a8a5f`, donker `--donker #00553a`, zacht groen `--zacht #e3f2ea`, achtergrond `--bg #f4f7f5`, rand `--rand #d8e4dc`, tekst `--tekst #13201a`, grijze tekst `--grijs #4f5e55`, afrekenen `--rood #b42318`.
-- **Kop** op elk scherm: verticaal gestreept als een clubshirt (30px-strepen), 4px wit randje, logo in een wit vak van 54px, "RACING MECHELEN", "Drankenlijst A-kern" en het statuspilletje.
+- **Kop** op elk scherm: verticaal gestreept als een clubshirt (30px-strepen), 4px wit randje, logo in een wit vak van 54px, "RACING MECHELEN", "Drankenlijst A-kern" (sinds 31 oktober "Turflijst A-kern") en het statuspilletje.
 - **Turven** (later uitgebreid met de pil "Alle", zie verder): zoekbalk, groepen als pillen (uit de database, in hun volgorde), één groep tegelijk met kopje "GROEP ──── x open". De laatst gekozen groep wordt per toestel onthouden. Zoeken toont spelers uit alle groepen. Spelers als kaarten in 2 kolommen; met open drankjes een groene rand en een groen bolletje met het aantal. In de gastengroep een kaart "+ Gast toevoegen".
 - **Drankjes van een speler**: nu een volledig scherm (was een uitschuifpaneel) met gestreepte kop, terugknop (44px), groep, naam (max. 2 regels), wit vakje met het totaal en het logo. Tegels in 3 kolommen; tik = +1, "−" = één minder. Onderaan chips ("2× Cola") en een rode knop "Afrekenen (n)" van 52px.
 - **Onderbalk**: grote tabs (50px) met lijn-icoon; actief = zacht groen vlak met groene, vette tekst. Is de beheerder ook aan een speler gekoppeld, dan is er een 4e tab "Rekening" (dan zonder iconen, zodat het op 360px past).
@@ -198,7 +199,7 @@ Look D blijft. Enkel weergave is veranderd: datamodel, RLS, offline-wachtrij, sy
 - Zoeken doorzoekt altijd alle groepen.
 
 **Overzicht** (de brede tabel en de maandkiezer zijn weg)
-- Titel "Overzicht" in de gestreepte kop (de andere schermen houden "Drankenlijst A-kern").
+- Titel "Overzicht" in de gestreepte kop (de andere schermen houden de gewone titel).
 - 3 tegels naast elkaar: *Open drankjes*, *Spelers open*, *Laatst afgerekend* (bv. "28 okt", "–" als er nog geen is; in een ander jaar "28 okt ’25").
 - Segmentschakelaar *Openstaand* / *Geschiedenis* (`role=tablist/tab`, `aria-selected`, pijltjestoetsen wisselen). De gekozen tab wordt per toestel onthouden (`turflijst-overzicht-tab`).
 - *Openstaand*: per groep met iets open een kopje; per speler één kaart (meeste eerst, bij gelijkstand alfabetisch) met totaal, pijltje en chips per drankje (meeste eerst). Tik = drankjesscherm (daar is Afrekenen). Onderaan een kaart met stippelrand "Alle spelers samen". Leeg: "Niets open."
@@ -219,6 +220,30 @@ Look D blijft. Enkel weergave is veranderd: datamodel, RLS, offline-wachtrij, sy
 - Binnen een groep toont de app spelers **alfabetisch**; er is geen aparte volgorde-kolom voor spelers.
 - Nog geen e-mailadressen ingevuld: wie "Mijn rekening" moet zien, krijgt dat via Beheer → speler → e-mail.
 
+## Consumpties en categorieën (31 oktober 2026)
+
+Look D blijft; RLS, offline-wachtrij, synchronisatie en rollen werken zoals voordien.
+
+**Woorden**
+- Overal in de app "consumptie(s)" i.p.v. "drankje(s)": kop-ondertitel ("10 consumpties open"), tegel "Open consumpties", "Tik op een consumptie voor +1", Beheer → "Consumpties" / "+ Consumptie", meldingen en Mijn rekening.
+- Titel "Turflijst A-kern" i.p.v. "Drankenlijst A-kern": kop, loginscherm, `<title>`, manifest (`name` "Turflijst A-kern – Racing Mechelen", `short_name` "Turflijst A-kern"). Let op: Android kort een `short_name` van 16 tekens onder het icoon soms af.
+- Interne namen bleven: tabel `drinks`, `drink_id`, functienamen, de sleutel van versie 1.
+
+**Datamodel** (migratie `20261031090000_categorie_consumpties.sql`, toegepast op het live project)
+- Kolom `drinks.categorie text not null default 'Fris'`, met een check op Fris, Warm, Bier, Snacks. De volgorde van de categorieën staat vast in de app (`CATS` in `app.js`).
+- RLS en rechten niet aangepast: de rechten op `drinks` gelden per tabel, dus ook voor de nieuwe kolom. Na de migratie: RLS-tests 54/54 ok, anon-API-test 0 fouten.
+- Indeling: **Fris** Water, Aquarius, Fuze Tea, Ice Tea, Cola, Fanta, Sprite, Minute Maid, Fristi, Nalu, Red Bull · **Warm** Cecemel, Warme choco · **Bier** Stella Artois, Carolus, Kriek, Duvel · **Snacks** Chips, Snoep, Koek.
+- "Chips / snoep" is **gearchiveerd, niet verwijderd** (categorie Snacks), zodat oude afrekeningen kloppen. Er stonden geen open turven op. Chips, Snoep en Koek zijn nieuw (volgorde 19–21).
+
+**App**
+- *Consumptiescherm*: tegels per categorie onder kopjes "FRIS ────", "WARM ────", "BIER ────", "SNACKS ────" (zelfde stijl als de groepkopjes), 3 kolommen per categorie. Lege categorieën worden niet getoond. De chips onderaan en de afrekenvraag volgen dezelfde volgorde.
+- *Beheer*: consumpties per categorie; ▲▼ verschuift binnen de categorie. In de dialoog een keuzelijst "Categorie"; nieuwe consumpties staan standaard op Fris.
+- *Overzicht*: chips per speler blijven "meeste eerst"; "Alle spelers samen" is per categorie gesorteerd (daarbinnen meeste eerst). Geschiedenis toont ook gearchiveerde items (bv. "2× Chips / snoep").
+- Een lokale kopie van vóór de update (zonder categorie) toont alles als Fris tot de eerstvolgende verversing.
+- Service worker: cache naar `v4`.
+
+**Getest** (Edge headless, 390×800 en 360×800, nagebootste backend met verzonnen namen; niets in de live database aangeraakt behalve de migratie): kop/title/manifest/loginscherm zonder "drank"; 4 categoriekopjes in de goede volgorde en stijl, 3 kolommen per categorie, gearchiveerd item niet als tegel; offline turven op een nieuw item (Koek) en een bestaand (Duvel), −1 uit de wachtrij, daarna correct verstuurd; "Alle spelers samen" per categorie; geschiedenis met gearchiveerd item; Beheer: categoriekopjes, ▲▼ past enkel de eigen categorie aan, categorie wijzigen, nieuw item standaard Fris en zichtbaar in het consumptiescherm; Mijn rekening als speler; offline openen met cache `v4` en turven op een nieuw item. Geen horizontaal scrollen. axe-core (contrast): 0 fouten.
+
 ## Online (30 oktober 2026)
 
 - **App**: https://ysnmrn.github.io/Turflijst/ — GitHub Pages, branch `main`, map `/` (root).
@@ -234,10 +259,11 @@ Look D blijft. Enkel weergave is veranderd: datamodel, RLS, offline-wachtrij, sy
 
 ## Wat nog openstaat
 
-1. **De site op een echte gsm in daglicht bekijken** (nieuwe lay-out staat online sinds 30 oktober; wie de app al gebruikte, ziet ze bij de tweede keer openen).
-2. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
-3. **E-mailadressen invullen** (Beheer → speler) voor wie "Mijn rekening" moet kunnen zien; de spelers zelf staan al in de database. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
-4. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
+1. **Consumpties en categorieën pushen** (wacht op toestemming; de databasekant staat al live en is compatibel met de huidige app).
+2. **De site op een echte gsm in daglicht bekijken** (nieuwe lay-out staat online sinds 30 oktober; wie de app al gebruikte, ziet ze bij de tweede keer openen).
+3. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
+4. **E-mailadressen invullen** (Beheer → speler) voor wie "Mijn rekening" moet kunnen zien; de spelers zelf staan al in de database. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
+5. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
 
 **Mogelijke uitbreidingen** (niet gevraagd, niet gebouwd): prijzen per drankje en bedragen bij afrekenen; beheerders aanduiden vanuit de app; een rol "turver" die enkel mag turven.
 

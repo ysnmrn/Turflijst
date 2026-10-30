@@ -1,6 +1,6 @@
 # Stand van zaken
 
-*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online; look "D" online; spelers staan in de database; nieuwe lay-out (pil "Alle", nieuw Overzicht) online; "consumpties" met categorieën klaar (database live, app nog niet gepusht)*
+*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online; look "D" online; spelers staan in de database; nieuwe lay-out (pil "Alle", nieuw Overzicht) online; "consumpties" met categorieën online*
 
 ## Wat is de app?
 
@@ -259,11 +259,10 @@ Look D blijft; RLS, offline-wachtrij, synchronisatie en rollen werken zoals voor
 
 ## Wat nog openstaat
 
-1. **Consumpties en categorieën pushen** (wacht op toestemming; de databasekant staat al live en is compatibel met de huidige app).
-2. **De site op een echte gsm in daglicht bekijken** (nieuwe lay-out staat online sinds 30 oktober; wie de app al gebruikte, ziet ze bij de tweede keer openen).
-3. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
-4. **E-mailadressen invullen** (Beheer → speler) voor wie "Mijn rekening" moet kunnen zien; de spelers zelf staan al in de database. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
-5. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
+1. **De site op een echte gsm in daglicht bekijken** (nieuwe lay-out sinds 30 oktober, consumpties en categorieën sinds 31 oktober online; wie de app al gebruikte, ziet ze bij de tweede keer openen).
+2. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
+3. **E-mailadressen invullen** (Beheer → speler) voor wie "Mijn rekening" moet kunnen zien; de spelers zelf staan al in de database. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
+4. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
 
 **Mogelijke uitbreidingen** (niet gevraagd, niet gebouwd): prijzen per drankje en bedragen bij afrekenen; beheerders aanduiden vanuit de app; een rol "turver" die enkel mag turven.
 

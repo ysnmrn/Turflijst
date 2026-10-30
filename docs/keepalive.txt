@@ -1,2 +1,3 @@
-Nog geen run van de onderhouds-workflow.
-Dit bestand wordt bij elke run bijgewerkt door .github/workflows/supabase-onderhoud.yml.
+Laatste run van de onderhouds-workflow: 2026-10-30 19:16 UTC
+Keep-alive: success
+Export: success

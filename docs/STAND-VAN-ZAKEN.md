@@ -1,6 +1,6 @@
 # Stand van zaken
 
-*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online; nieuwe look "D" klaar, nog niet gepusht*
+*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online; look "D" online; spelers staan in de database; nieuwe lay-out (pil "Alle", nieuw Overzicht) klaar, nog niet gepusht*
 
 ## Wat is de app?
 
@@ -98,9 +98,9 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 - **Inloggen**: e-mailadres → magic link. Er is ook een veld voor een code uit de mail (werkt pas als de mailsjablonen actief zijn).
 - **Beheerder** (onderaan 3 of 4 tabbladen):
   - *Turven*: spelers per groep, tik → drankjes-sheet (+1, −1, "Ongedaan"), knop *Afrekenen* met optionele opmerking. *+ Gast toevoegen* onder de groep met "gast" in de naam.
-  - *Overzicht*: tabel met wat openstaat per speler; daaronder de afrekeningen, filterbaar per maand, per periode (van–tot) of alles, en per speler, met totalen per drankje.
+  - *Overzicht*: tegels, wat openstaat per speler en de afrekeningen per dag (zie "Lay-out: pil Alle en nieuw Overzicht").
   - *Mijn rekening*: enkel als de beheerder zelf aan een speler gekoppeld is.
-  - *Beheer*: spelers (naam, groep, e-mail, actief/archief), drankjes (naam, volgorde ▲▼, archief), groepen (naam, volgorde, verwijderen als leeg), ander logo op dit toestel (optioneel), back-up downloaden (JSON), uitloggen. Als er nog gegevens van versie 1 op het toestel staan, verschijnt een knop om die te importeren.
+  - *Beheer*: spelers (naam, groep, e-mail, actief/archief), drankjes (naam, volgorde ▲▼, archief), groepen (naam, volgorde, verwijderen als leeg), back-up downloaden (JSON), uitloggen. Als er nog gegevens van versie 1 op het toestel staan, verschijnt een knop om die te importeren.
 - **Speler**: enkel *Mijn rekening* (openstaand + vorige afrekeningen) en uitloggen.
 - **Login zonder gekoppelde speler**: melding "nog niet gekoppeld".
 
@@ -111,7 +111,7 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 - **Afrekenen, spelers/drankjes/groepen wijzigen en gasten toevoegen kan enkel online.** Vóór het afrekenen wordt eerst de wachtrij verstuurd, zodat de afrekening alles bevat.
 - **Statuslabel rechtsboven**: *Online*, *Sync · n*, *Offline · n* (n = wachtende turven) of *n mislukt*. Tik erop voor details en om meteen te synchroniseren.
 - **Verversen**: bij terugkeren naar de app, bij terug online komen, en elke minuut zolang de app open staat. (Geen realtime-abonnement: niet nodig voor een turflijst en spaart het gratis plan.)
-- **Logo**: standaard het clublogo `logo.png`. Onder Beheer kan je op één toestel een ander logo kiezen (localStorage), zoals in versie 1.
+- **Logo**: altijd het clublogo `logo.png`. (Een eigen logo per toestel kiezen kon vroeger; dat is weggehaald, zie hieronder.)
 - **Mailsjablonen**: Supabase weigert aangepaste sjablonen op het Free-plan zolang de ingebouwde mailserver gebruikt wordt. De sjablonen staan klaar maar zijn uitgeschakeld in `config.toml`.
 
 **Getest** (Microsoft Edge headless, schermformaat 390×844, met tijdelijke testlogins die achteraf verwijderd zijn): inloggen, spelers/drankjes/groepen toevoegen en wijzigen, volgorde, groep verwijderen, turven, −1, ongedaan maken, offline turven en automatisch synchroniseren, afrekenen met opmerking, geschiedenis met alle filters, gast toevoegen, archiveren, en "Mijn rekening" als speler (ziet enkel zichzelf; schrijven wordt geweigerd).
@@ -172,7 +172,7 @@ Nieuwe vormgeving. **Enkel uitzicht en weergave zijn veranderd**: datamodel, RLS
 
 - **Kleuren** (CSS-variabelen bovenaan `index.html`): clubgroen `--groen #007852`, streep `--streep #0a8a5f`, donker `--donker #00553a`, zacht groen `--zacht #e3f2ea`, achtergrond `--bg #f4f7f5`, rand `--rand #d8e4dc`, tekst `--tekst #13201a`, grijze tekst `--grijs #4f5e55`, afrekenen `--rood #b42318`.
 - **Kop** op elk scherm: verticaal gestreept als een clubshirt (30px-strepen), 4px wit randje, logo in een wit vak van 54px, "RACING MECHELEN", "Drankenlijst A-kern" en het statuspilletje.
-- **Turven**: zoekbalk, groepen als pillen (uit de database, in hun volgorde), één groep tegelijk met kopje "GROEP ──── x open". De laatst gekozen groep wordt per toestel onthouden. Zoeken toont spelers uit alle groepen. Spelers als kaarten in 2 kolommen; met open drankjes een groene rand en een groen bolletje met het aantal. In de gastengroep een kaart "+ Gast toevoegen".
+- **Turven** (later uitgebreid met de pil "Alle", zie verder): zoekbalk, groepen als pillen (uit de database, in hun volgorde), één groep tegelijk met kopje "GROEP ──── x open". De laatst gekozen groep wordt per toestel onthouden. Zoeken toont spelers uit alle groepen. Spelers als kaarten in 2 kolommen; met open drankjes een groene rand en een groen bolletje met het aantal. In de gastengroep een kaart "+ Gast toevoegen".
 - **Drankjes van een speler**: nu een volledig scherm (was een uitschuifpaneel) met gestreepte kop, terugknop (44px), groep, naam (max. 2 regels), wit vakje met het totaal en het logo. Tegels in 3 kolommen; tik = +1, "−" = één minder. Onderaan chips ("2× Cola") en een rode knop "Afrekenen (n)" van 52px.
 - **Onderbalk**: grote tabs (50px) met lijn-icoon; actief = zacht groen vlak met groene, vette tekst. Is de beheerder ook aan een speler gekoppeld, dan is er een 4e tab "Rekening" (dan zonder iconen, zodat het op 360px past).
 - Overzicht, Beheer, Mijn rekening en het loginscherm gebruiken dezelfde kleuren, kop en kaarten.
@@ -187,6 +187,37 @@ Nieuwe vormgeving. **Enkel uitzicht en weergave zijn veranderd**: datamodel, RLS
 **Contrast** (WCAG, minimum 4.5:1 voor gewone tekst): alle combinaties halen dat (bv. grijze tekst op achtergrond 6.35, wit op clubgroen 5.51, clubgroen op zacht groen 4.77, wit op rood 6.57), behalve **wit op de lichte streep #0a8a5f: 4.36**. Oplossing zonder de streepkleuren te veranderen: de titel is groot en vet (daarvoor volstaat 3:1), en kleine tekst in de gestreepte kop krijgt een dunne donkergroene rand (`--halo`), zodat elke letter op #00553a staat (8.9:1).
 
 **Getest** (Edge headless, 390×800 en 360×800, met een nagebootste backend en verzonnen namen, zodat er geen echte gegevens op screenshots kwamen en niets in de live database veranderde): login, turven (pillen, groep wisselen, gastengroep, zoeken over groepen), drankjesscherm (+1, −1, totaal, chips, Afrekenen (n)), offline turven + synchroniseren, afrekenen, overzicht en geschiedenis, beheer en dialoog, Mijn rekening als speler. Gemeten: 2 kolommen spelers, 3 kolommen tegels, kaarten ≥ 60px, pillen ≥ 38px, tabs ≥ 50px, terugknop 44px, afrekenknop 52px, logo 54/46px, geen horizontaal scrollen. Offline geopend (webserver en netwerk uit): fonts en logo laden uit de cache. axe-core (contrastregel) vond 0 fouten op alle schermen.
+
+## Lay-out: pil "Alle" en nieuw Overzicht (30 oktober 2026)
+
+Look D blijft. Enkel weergave is veranderd: datamodel, RLS, offline-wachtrij, synchronisatie en rollen zijn dezelfde. Eén extra leesquery: bij elke verversing haalt de beheerder ook het tijdstip van de laatste afrekening op (voor de tegel "Laatst afgerekend"); dat wordt mee in de lokale kopie bewaard, zodat het ook offline zichtbaar is.
+
+**Turven**
+- Vooraan een pil **"Alle"**, standaard gekozen: alle groepen onder elkaar in hun volgorde, elk met kopje "GROEP ──── x open" en spelerskaarten in 2 kolommen. Groepen zonder actieve spelers worden overgeslagen, behalve de gastengroep (met "+ Gast toevoegen").
+- Een groeppil toont enkel die groep, zoals voordien. De gekozen pil wordt per toestel onthouden (`localStorage` `turflijst-groep`, waarde `alle` of een groep-id).
+- Zoeken doorzoekt altijd alle groepen.
+
+**Overzicht** (de brede tabel en de maandkiezer zijn weg)
+- Titel "Overzicht" in de gestreepte kop (de andere schermen houden "Drankenlijst A-kern").
+- 3 tegels naast elkaar: *Open drankjes*, *Spelers open*, *Laatst afgerekend* (bv. "28 okt", "–" als er nog geen is; in een ander jaar "28 okt ’25").
+- Segmentschakelaar *Openstaand* / *Geschiedenis* (`role=tablist/tab`, `aria-selected`, pijltjestoetsen wisselen). De gekozen tab wordt per toestel onthouden (`turflijst-overzicht-tab`).
+- *Openstaand*: per groep met iets open een kopje; per speler één kaart (meeste eerst, bij gelijkstand alfabetisch) met totaal, pijltje en chips per drankje (meeste eerst). Tik = drankjesscherm (daar is Afrekenen). Onderaan een kaart met stippelrand "Alle spelers samen". Leeg: "Niets open."
+- *Geschiedenis*: pillen *Deze maand* (standaard), *Vorige maand*, *Alles* en een keuzelijst *Speler*. Afrekeningen per dag, nieuwste eerst, kopje "WO 28 OKT ──── x drankjes", per dag één kaart met naam, uur, totaal, drankjes ("3× Cola · 2× Duvel") en eventuele opmerking. Onderaan "Meer filters (periode kiezen)": klapt de periodefilter (van–tot) open; die verschijnt bovenaan onder de spelerkeuze, zodat je de resultaten eronder meteen ziet. Een pil kiezen sluit hem weer. Leeg: "Nog geen afrekeningen in deze periode." Offline: "Afrekeningen bekijken kan enkel met internet."
+
+**Beheer**
+- Het onderdeel "Logo op dit toestel" is weg (opmaak en code). Een vroeger opgeslagen logo (`localStorage` `turflijst-logo`) wordt bij het opstarten verwijderd. Bij het importeren van versie 1 wordt het logo uit die gegevens niet meer overgenomen.
+
+**Service worker**: cache naar `v3`.
+
+**Getest** (Edge headless, 390×800 en 360×800, nagebootste backend met verzonnen namen, waaronder een heel lange; niets in de live database aangeraakt): pil Alle (volgorde groepen, kopjes, 2 kolommen, gastenkaart), groep kiezen en onthouden na herladen, zoeken over groepen; Overzicht: tegels (waarden, naast elkaar), tabs (40px, aria-selected, onthouden na herladen), sortering kaarten en chips, tik naar drankjesscherm, totaalkaart; Geschiedenis: elke filterpil, spelerfilter, lege toestand, periodefilter open/dicht; offline (tegels uit de lokale kopie, offline turven, melding bij geschiedenis, daarna synchroniseren); afrekenen werkt "Laatst afgerekend" bij; lege database ("Niets open.", "–"); Beheer zonder logo-onderdeel en logo-data opgeruimd; Mijn rekening als speler; offline openen met cache `v3`. Geen horizontaal scrollen. axe-core (contrast): 0 fouten op Turven, Overzicht (beide tabs), drankjesscherm, Beheer en Mijn rekening.
+
+## Spelers in de database (30 oktober 2026)
+
+- De spelerslijst van de A-kern staat in de live database: **A-kern spelers 24**, **A-kern doelmannen 3**, **A-kern trainerstaf 4**, **Extra / gasten 0**. Rechtstreeks met een tijdelijke SQL-query ingevoerd; de namen staan bewust nergens in deze repo.
+- Namen in de vorm "Achternaam Voornaam" (de staf enkel voornaam), met accenten.
+- Twee spelers stonden er al met voornaam eerst; die zijn hernoemd naar dezelfde vorm (zelfde rij, dus geen dubbels en eventuele turven blijven bij hen).
+- Binnen een groep toont de app spelers **alfabetisch**; er is geen aparte volgorde-kolom voor spelers.
+- Nog geen e-mailadressen ingevuld: wie "Mijn rekening" moet zien, krijgt dat via Beheer → speler → e-mail.
 
 ## Online (30 oktober 2026)
 
@@ -203,9 +234,9 @@ Nieuwe vormgeving. **Enkel uitzicht en weergave zijn veranderd**: datamodel, RLS
 
 ## Wat nog openstaat
 
-1. **Nieuwe look pushen** (wacht op toestemming), daarna de site op een echte gsm in daglicht bekijken.
+1. **Nieuwe lay-out pushen** (pil "Alle", nieuw Overzicht, logo-instelling weg; wacht op toestemming), daarna de site op een echte gsm in daglicht bekijken.
 2. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
-3. **Spelers toevoegen** in de app (Beheer → + Speler), met e-mailadres voor wie "Mijn rekening" moet kunnen zien. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
+3. **E-mailadressen invullen** (Beheer → speler) voor wie "Mijn rekening" moet kunnen zien; de spelers zelf staan al in de database. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
 4. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
 
 **Mogelijke uitbreidingen** (niet gevraagd, niet gebouwd): prijzen per drankje en bedragen bij afrekenen; beheerders aanduiden vanuit de app; een rol "turver" die enkel mag turven.

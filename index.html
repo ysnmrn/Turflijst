@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b6b34">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Drankenlijst A-kern – Racing Mechelen</title>
+<style>
+  :root{
+    --bg:#f3f6f3; --card:#fff; --ink:#132018; --muted:#5f6d64; --line:#dde6df;
+    --acc:#0b6b34; --acc2:#0e8a43; --accsoft:#e2f3e8; --deep:#06401f; --warn:#b42318; --warnsoft:#fdecea;
+    --r:14px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  body{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+  header{position:sticky;top:0;z-index:5;color:#fff;display:flex;align-items:center;gap:12px;
+    padding:calc(12px + env(safe-area-inset-top)) 16px 14px;
+    background:repeating-linear-gradient(90deg,var(--acc) 0 34px,var(--acc2) 34px 68px);
+    border-bottom:4px solid #fff;box-shadow:0 2px 0 var(--acc)}
+  header .logo{width:46px;height:46px;border-radius:50%;background:#fff;flex:none;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;box-shadow:0 0 0 2px #fff,0 2px 6px rgba(0,0,0,.25)}
+  header .logo img{width:100%;height:100%;object-fit:contain}
+  header .logo span{color:var(--acc);font-weight:800;font-size:15px;letter-spacing:.5px}
+  header .club{font-size:12px;text-transform:uppercase;letter-spacing:1.4px;font-weight:700;opacity:.9}
+  header h1{margin:0;font-size:19px;font-weight:750;letter-spacing:.2px;line-height:1.2}
+  header .sub{font-size:13px;opacity:.85}
+  .grp{grid-column:1/-1;margin:10px 2px -2px;font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:1.2px;color:var(--acc);
+    display:flex;align-items:center;gap:8px}
+  .grp:after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--acc),transparent)}
+  .grp:first-child{margin-top:0}
+  .addguest{border:2px dashed var(--acc);color:var(--acc);background:transparent}
+  tr.gh td{background:var(--accsoft)!important;color:var(--acc);font-size:12px;font-weight:750;text-transform:uppercase;letter-spacing:1px;text-align:left}
+  main{padding:14px 14px 24px;max-width:720px;margin:0 auto}
+  .view{display:none}.view.on{display:block}
+  input[type=search],input[type=text],textarea{width:100%;font:inherit;padding:12px 14px;border:1px solid var(--line);
+    border-radius:12px;background:#fff;color:var(--ink)}
+  textarea{min-height:140px;resize:vertical}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px}
+  .pbtn{position:relative;border:1px solid var(--line);background:var(--card);border-radius:var(--r);
+    padding:16px 12px;min-height:64px;text-align:left;font:inherit;font-weight:600;color:var(--ink);cursor:pointer}
+  .pbtn{border-left:4px solid var(--acc)}
+  .pbtn.addguest{border:2px dashed var(--acc)}
+  .pbtn:active{transform:scale(.98);background:var(--accsoft)}
+  .pbtn .cnt{position:absolute;top:8px;right:10px;font-size:12px;font-weight:700;color:var(--acc);
+    background:var(--accsoft);border-radius:999px;padding:1px 8px}
+  .empty{color:var(--muted);text-align:center;padding:30px 10px}
+  nav{position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;background:#fff;border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom)}
+  nav button{flex:1;border:0;background:none;font:inherit;font-size:13px;padding:10px 0 12px;color:var(--muted);cursor:pointer}
+  nav button .ic{display:block;font-size:20px;line-height:1.2}
+  nav button.on{color:var(--acc);font-weight:650}
+  .btn{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:600;cursor:pointer;background:var(--acc);color:#fff}
+  .btn.sec{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .btn.warn{background:var(--warn)}
+  .btn.small{padding:8px 12px;font-size:14px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+  .card h3{margin:0 0 6px;font-size:16px}
+  .muted{color:var(--muted);font-size:14px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .chip{background:var(--accsoft);color:var(--acc);border-radius:999px;padding:3px 10px;font-size:14px;font-weight:600}
+  h2{font-size:17px;margin:18px 0 8px}
+  /* sheet */
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20;display:none}
+  .scrim.on{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--bg);border-radius:20px 20px 0 0;
+    max-height:88vh;overflow:auto;padding:16px 14px calc(18px + env(safe-area-inset-bottom));
+    transform:translateY(105%);transition:transform .2s ease;max-width:720px;margin:0 auto}
+  .sheet.on{transform:none}
+  .sheet .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .sheet .top h2{margin:0;font-size:20px}
+  .dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .dbtn{border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 9px;font:inherit;font-size:14px;
+    text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-height:82px;user-select:none}
+  .dbtn.has{border-color:var(--acc);background:var(--accsoft)}
+  .dbtn:active{background:var(--accsoft)}
+  .dbtn .nm{font-weight:650}
+  .dbtn .ct{display:flex;justify-content:space-between;align-items:center}
+  .dbtn .nm{line-height:1.2}
+  .dbtn .num{font-size:21px;font-weight:750;color:var(--acc)}
+  .minus{border:1px solid var(--line);background:#fff;border-radius:9px;width:32px;height:30px;font-size:20px;
+    line-height:1;color:var(--muted);cursor:pointer}
+  .minus:disabled{opacity:.3}
+  /* table */
+  .tblwrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:#fff;max-height:65vh}
+  table{border-collapse:separate;border-spacing:0;font-size:14px;min-width:100%}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:center}
+  thead th{position:sticky;top:0;background:#fafaf7;z-index:2;font-weight:650}
+  th:first-child,td:first-child{position:sticky;left:0;background:#fff;text-align:left;z-index:1;font-weight:600}
+  thead th:first-child{z-index:3;background:#fafaf7}
+  td.z{color:#c9c7bf}
+  td.tot,th.tot{font-weight:750;color:var(--acc)}
+  tr.click{cursor:pointer}
+  /* toast */
+  .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%) translateY(-20px);
+    width:max-content;white-space:nowrap;
+    background:#1c1f1d;color:#fff;border-radius:12px;padding:10px 12px 10px 16px;display:flex;gap:12px;align-items:center;
+    opacity:0;pointer-events:none;transition:all .18s;z-index:40;max-width:92vw;font-size:15px}
+  .toast.on{opacity:1;transform:translateX(-50%);pointer-events:auto}
+  .toast span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .toast button{flex:none;background:none;border:0;color:#9be2b5;font:inherit;font-weight:700;cursor:pointer;padding:4px 6px}
+  /* dialog */
+  .dlg{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.4);padding:20px}
+  .dlg.on{display:flex}
+  .dlg .box{background:#fff;border-radius:16px;padding:18px;max-width:380px;width:100%}
+  .dlg .box p{margin:0 0 16px}
+  .banner{background:var(--warnsoft);color:var(--warn);border-radius:12px;padding:10px 12px;font-size:14px;margin-bottom:12px;display:none}
+  .list li{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+  .list{list-style:none;margin:0;padding:0}
+  .x{border:0;background:none;color:var(--warn);font-size:14px;cursor:pointer;padding:6px}
+  .log{font-size:14px;color:var(--muted);margin:6px 0 0;padding-left:18px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo" id="logo"><span>RM</span></div>
+  <div><div class="club">Racing Mechelen</div><h1>Drankenlijst A-kern</h1><div class="sub" id="sub"></div></div>
+</header>
+
+<main>
+  <div class="banner" id="storeWarn">Opslaan lukt niet in deze browser. Open de pagina in Chrome of Safari (niet in privé-modus), anders ben je de turven kwijt.</div>
+
+  <!-- TURVEN -->
+  <section class="view on" id="v-turf">
+    <input type="search" id="q" placeholder="Zoek speler…" autocomplete="off">
+    <div class="grid" id="pgrid"></div>
+  </section>
+
+  <!-- OVERZICHT -->
+  <section class="view" id="v-over">
+    <p class="muted" style="margin-top:0">Openstaande drankjes per speler. Tik op een speler om af te rekenen.</p>
+    <div class="tblwrap"><table id="tbl"></table></div>
+    <h2>Laatst afgerekend</h2>
+    <div id="hist"></div>
+  </section>
+
+  <!-- INSTELLINGEN -->
+  <section class="view" id="v-set">
+    <div class="card">
+      <h3>Spelers</h3>
+      <p class="muted">Eén naam per lijn. Een lijn die met <b>#</b> begint is een groep (bv. <code># Doelmannen</code>). Plakken uit Excel kan ook (enkel eerste kolom telt).</p>
+      <textarea id="tPlayers"></textarea>
+    </div>
+    <div class="card">
+      <h3>Drankjes</h3>
+      <p class="muted">Eén drankje per lijn, in de volgorde waarin je ze wil zien.</p>
+      <textarea id="tDrinks"></textarea>
+    </div>
+    <div class="row" style="margin-bottom:18px"><button class="btn" id="saveLists">Lijsten opslaan</button></div>
+
+    <div class="card">
+      <h3>Clublogo</h3>
+      <p class="muted">Kies een afbeelding van het logo op deze gsm. Het wordt bovenaan getoond.</p>
+      <div class="row"><input type="file" id="fLogo" accept="image/*" style="font-size:14px;max-width:100%">
+        <button class="btn sec small" id="bLogoDel">Verwijder logo</button></div>
+    </div>
+    <div class="card">
+      <h3>Back-up</h3>
+      <p class="muted">Alles staat op deze gsm. Maak af en toe een back-up (bv. in een notitie of mail aan jezelf).</p>
+      <div class="row">
+        <button class="btn sec small" id="bCopy">Kopieer back-up</button>
+        <button class="btn sec small" id="bDl">Download back-up</button>
+      </div>
+      <p class="muted" style="margin-top:14px">Back-up terugzetten: plak hieronder en tik op Terugzetten.</p>
+      <textarea id="tImport" style="min-height:80px" placeholder='{"players":…}'></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn sec small" id="bImp">Terugzetten</button></div>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button class="on" data-v="turf"><span class="ic">✏️</span>Turven</button>
+  <button data-v="over"><span class="ic">📋</span>Overzicht</button>
+  <button data-v="set"><span class="ic">⚙️</span>Lijsten</button>
+</nav>
+
+<!-- speler-sheet -->
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet">
+  <div class="top"><h2 id="sName"></h2><button class="btn sec small" id="sClose">Klaar</button></div>
+  <div class="dgrid" id="dgrid"></div>
+  <div class="card" style="margin-top:14px" id="sSum"></div>
+</div>
+
+<div class="toast" id="toast"><span id="tMsg"></span><button id="tUndo">Ongedaan</button></div>
+
+<div class="dlg" id="dlg"><div class="box"><p id="dMsg"></p>
+  <div class="row" style="justify-content:flex-end"><button class="btn sec small" id="dNo">Annuleer</button><button class="btn small" id="dYes">OK</button></div></div></div>
+
+<script>
+(function(){
+const KEY='racing-drankenlijst-v1';
+const $=s=>document.querySelector(s);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const GUEST='Extra / gasten';
+const START_PLAYERS=`# A-kern
+Speler 1
+Speler 2
+# Doelmannen
+Keeper 1
+# Trainerstaf
+Trainer 1`;
+const START_DRINKS=['Water','Aquarius','Fuze Tea','Ice Tea','Cola','Fanta','Sprite','Minute Maid','Fristi','Cecemel',
+  'Warme choco','Nalu','Red Bull','Stella Artois','Carolus','Kriek','Duvel','Chips / snoep'];
+const SAMPLE={ players:parsePlayers(START_PLAYERS).map(p=>({id:uid(),...p})),
+  drinks:START_DRINKS.map(n=>({id:uid(),name:n})), groups:['A-kern','Doelmannen','Trainerstaf',GUEST],
+  entries:[], settlements:[], logo:null };
+function cleanName(l){ return l.split('\t')[0].split(';')[0].trim(); }
+function parsePlayers(t){ // "# Groep" = groepskop
+  let g='Spelers'; const seen=new Set(), out=[];
+  for(const raw of t.split(/\r?\n/)){ const l=raw.trim(); if(!l) continue;
+    if(l.startsWith('#')){ g=l.replace(/^#+/,'').trim()||'Spelers'; continue; }
+    const n=cleanName(l); const k=n.toLowerCase(); if(n&&!seen.has(k)){ seen.add(k); out.push({name:n,group:g}); } }
+  return out;
+}
+function groupsOf(players){ const gs=[]; for(const p of players) if(!gs.includes(p.group)) gs.push(p.group); return gs; }
+
+let S, canStore=true;
+function load(){
+  try{ const raw=localStorage.getItem(KEY); S=raw?JSON.parse(raw):null; }catch(e){ canStore=false; }
+  if(!S||!Array.isArray(S.players)) S=JSON.parse(JSON.stringify(SAMPLE));
+  S.entries=S.entries||[]; S.settlements=S.settlements||[];
+  S.players.forEach(p=>{ if(!p.group) p.group='Spelers'; });
+  S.groups=S.groups||groupsOf(S.players); if(!S.groups.includes(GUEST)) S.groups.push(GUEST);
+}
+/* groepen in volgorde; binnen groep de volgorde van de lijst (zoals op het blad) */
+function grouped(list){
+  const gs=[...S.groups]; for(const p of list) if(!gs.includes(p.group)) gs.push(p.group);
+  return gs.map(g=>({g,ps:list.filter(p=>p.group===g)}));
+}
+function renderLogo(){
+  const el=$('#logo');
+  if(S.logo){ el.innerHTML=`<img alt="Logo" src="${S.logo}">`; return; }
+  const img=new Image(); img.alt='Logo'; img.onload=()=>{el.innerHTML='';el.appendChild(img);}; img.src='logo.png';
+}
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(S)); canStore=true; }catch(e){ canStore=false; }
+  $('#storeWarn').style.display=canStore?'none':'block';
+}
+
+/* helpers */
+const pById=id=>S.players.find(p=>p.id===id);
+const dById=id=>S.drinks.find(d=>d.id===id);
+function counts(pid){
+  const c={}; for(const e of S.entries) if(e.pid===pid) c[e.did]=(c[e.did]||0)+1; return c;
+}
+const total=pid=>S.entries.reduce((n,e)=>n+(e.pid===pid),0);
+const fmtDate=ts=>new Date(ts).toLocaleString('nl-BE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+
+
+/* nav */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>show(b.dataset.v));
+function show(v){
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
+  if(v==='over') renderOver(); if(v==='set') renderSet(); if(v==='turf') renderGrid();
+  window.scrollTo(0,0);
+}
+
+/* turven */
+$('#q').oninput=renderGrid;
+function renderGrid(){
+  const q=$('#q').value.trim().toLowerCase();
+  const list=S.players.filter(p=>p.name.toLowerCase().includes(q));
+  let h='';
+  for(const {g,ps} of grouped(list)){
+    if(!ps.length&&!(g===GUEST&&!q)) continue;
+    h+=`<div class="grp">${esc(g)}</div>`+ps.map(p=>{const t=total(p.id);
+      return `<button class="pbtn" data-p="${p.id}">${esc(p.name)}${t?`<span class="cnt">${t}</span>`:''}</button>`}).join('');
+    if(g===GUEST&&!q) h+='<button class="pbtn addguest" id="addGuest">+ Gast toevoegen</button>';
+  }
+  $('#pgrid').innerHTML=h||'<div class="empty" style="grid-column:1/-1">Geen speler gevonden.</div>';
+  $('#pgrid').querySelectorAll('.pbtn[data-p]').forEach(b=>b.onclick=()=>openSheet(b.dataset.p));
+  const ag=$('#addGuest'); if(ag) ag.onclick=openGuest;
+  renderSub();
+}
+function renderSub(){ const open=S.entries.length;
+  $('#sub').textContent=open?`${open} drankje${open>1?'s':''} open`:'Alles afgerekend'; }
+function openGuest(){
+  $('#dMsg').innerHTML='<b>Naam van de gast</b><br><input type="text" id="gName" style="margin-top:10px" placeholder="bv. Papa van Speler 1">';
+  $('#dYes').textContent='Toevoegen'; $('#dlg').classList.add('on'); setTimeout(()=>$('#gName').focus(),50);
+  $('#dNo').onclick=()=>$('#dlg').classList.remove('on');
+  $('#dYes').onclick=()=>{ const n=$('#gName').value.trim(); if(!n) return;
+    $('#dlg').classList.remove('on');
+    const p={id:uid(),name:n,group:GUEST}; S.players.push(p); save(); renderGrid(); openSheet(p.id); };
+}
+
+let cur=null;
+function openSheet(pid){ cur=pid; renderSheet(); $('#scrim').classList.add('on'); $('#sheet').classList.add('on'); }
+function closeSheet(){ cur=null; $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); renderGrid(); }
+$('#scrim').onclick=closeSheet; $('#sClose').onclick=closeSheet;
+
+function renderSheet(){
+  const p=pById(cur); if(!p) return closeSheet();
+  $('#sName').textContent=p.name;
+  const c=counts(cur);
+  $('#dgrid').innerHTML=S.drinks.map(d=>`<div class="dbtn${c[d.id]?' has':''}" data-d="${d.id}" role="button" tabindex="0">
+      <span class="nm">${esc(d.name)}</span>
+      <span class="ct"><span class="num">${c[d.id]||0}</span>
+      <button class="minus" data-m="${d.id}" ${c[d.id]?'':'disabled'} aria-label="Eén minder">−</button></span></div>`).join('')
+    || '<div class="empty" style="grid-column:1/-1">Nog geen drankjes. Voeg ze toe bij Lijsten.</div>';
+  $('#dgrid').querySelectorAll('.dbtn').forEach(el=>el.onclick=ev=>{
+    if(ev.target.closest('.minus')) return; add(cur,el.dataset.d);
+  });
+  $('#dgrid').querySelectorAll('.minus').forEach(b=>b.onclick=()=>removeLast(cur,b.dataset.m));
+  const t=total(cur);
+  const items=S.drinks.filter(d=>c[d.id]).map(d=>`<span class="chip">${c[d.id]}× ${esc(d.name)}</span>`).join('');
+  $('#sSum').innerHTML=t?`<h3>Open: ${t} drankje${t>1?'s':''}</h3><div class="chips">${items}</div>
+    <button class="btn warn small" id="sSettle">Afrekenen</button>`
+    :`<span class="muted">Niets open voor ${esc(p.name)}.</span>`;
+  const sb=$('#sSettle'); if(sb) sb.onclick=()=>settle(cur);
+}
+
+let lastAdd=null, toastT=null;
+function add(pid,did){
+  const e={id:uid(),pid,did,ts:Date.now()}; S.entries.push(e); save(); lastAdd=e.id;
+  if(navigator.vibrate) try{navigator.vibrate(15)}catch(_){}
+  renderSheet(); renderSub(); toast(`+1 ${dById(did).name} voor ${pById(pid).name}`,true);
+}
+function removeLast(pid,did){
+  for(let i=S.entries.length-1;i>=0;i--){ const e=S.entries[i];
+    if(e.pid===pid&&e.did===did){ S.entries.splice(i,1); break; } }
+  save(); renderSheet(); renderSub(); toast(`−1 ${dById(did).name}`,false);
+}
+$('#tUndo').onclick=()=>{
+  if(!lastAdd) return; S.entries=S.entries.filter(e=>e.id!==lastAdd); lastAdd=null; save();
+  if(cur) renderSheet(); renderGrid(); hideToast();
+};
+function toast(msg,undo){
+  $('#tMsg').textContent=msg; $('#tUndo').style.display=undo?'':'none';
+  $('#toast').classList.add('on'); clearTimeout(toastT); toastT=setTimeout(hideToast,3500);
+}
+function hideToast(){ $('#toast').classList.remove('on'); }
+
+/* bevestiging */
+function ask(msg,yesLabel,cb){
+  $('#dMsg').innerHTML=msg; $('#dYes').textContent=yesLabel||'OK'; $('#dlg').classList.add('on');
+  $('#dYes').onclick=()=>{ $('#dlg').classList.remove('on'); cb(); };
+  $('#dNo').onclick=()=>$('#dlg').classList.remove('on');
+}
+
+function settle(pid){
+  const p=pById(pid), c=counts(pid), t=total(pid);
+  const txt=S.drinks.filter(d=>c[d.id]).map(d=>`${c[d.id]}× ${esc(d.name)}`).join(', ');
+  ask(`<b>${esc(p.name)}</b> afrekenen?<br><span class="muted">${txt} (${t} in totaal). De teller gaat terug naar 0.</span>`,'Afgerekend',()=>{
+    const items=S.drinks.filter(d=>c[d.id]).map(d=>({name:d.name,n:c[d.id]}));
+    S.settlements.unshift({id:uid(),pid,name:p.name,ts:Date.now(),items,total:t});
+    S.settlements=S.settlements.slice(0,200);
+    S.entries=S.entries.filter(e=>e.pid!==pid); save();
+    if(cur) renderSheet(); renderOver(); renderGrid(); toast(`${p.name} afgerekend`,false);
+  });
+}
+
+/* overzicht */
+function renderOver(){
+  const ps=S.players.filter(p=>total(p.id)>0);
+  const ds=S.drinks.filter(d=>S.entries.some(e=>e.did===d.id));
+  if(!ps.length){ $('#tbl').innerHTML='<tr><td class="empty" style="position:static">Niets open. 🎉</td></tr>'; }
+  else{
+    let h='<thead><tr><th>Speler</th>'+ds.map(d=>`<th>${esc(d.name)}</th>`).join('')+'<th class="tot">Totaal</th></tr></thead><tbody>';
+    for(const {g,ps:gp} of grouped(ps)){ if(!gp.length) continue;
+      h+=`<tr class="gh"><td colspan="${ds.length+2}">${esc(g)}</td></tr>`;
+      for(const p of gp){ const c=counts(p.id);
+      h+=`<tr class="click" data-p="${p.id}"><td>${esc(p.name)}</td>`+ds.map(d=>c[d.id]?`<td>${c[d.id]}</td>`:'<td class="z">·</td>').join('')+`<td class="tot">${total(p.id)}</td></tr>`; } }
+    const all=ds.map(d=>S.entries.filter(e=>e.did===d.id).length);
+    h+=`<tr><td>Alle spelers</td>${all.map(n=>`<td class="tot">${n}</td>`).join('')}<td class="tot">${S.entries.length}</td></tr></tbody>`;
+    $('#tbl').innerHTML=h;
+    $('#tbl').querySelectorAll('tr.click').forEach(r=>r.onclick=()=>openSheet(r.dataset.p));
+  }
+  const hs=S.settlements.slice(0,15);
+  $('#hist').innerHTML=hs.length?hs.map(s=>`<div class="card"><div class="row" style="justify-content:space-between">
+      <b>${esc(s.name)}</b><span class="muted">${fmtDate(s.ts)}</span></div>
+      <div class="muted">${s.items.map(i=>`${i.n}× ${esc(i.name)}`).join(', ')}</div></div>`).join('')
+    :'<p class="muted">Nog niemand afgerekend.</p>';
+}
+
+/* lijsten */
+function renderSet(){
+  $('#tPlayers').value=grouped(S.players).filter(x=>x.ps.length).map(x=>'# '+x.g+'\n'+x.ps.map(p=>p.name).join('\n')).join('\n');
+  $('#tDrinks').value=S.drinks.map(d=>d.name).join('\n');
+}
+function parseLines(t){
+  const seen=new Set(), out=[];
+  for(let l of t.split(/\r?\n/)){ l=l.split('\t')[0].split(';')[0].trim(); const k=l.toLowerCase();
+    if(l&&!seen.has(k)){ seen.add(k); out.push(l); } }
+  return out;
+}
+function merge(old,items){ // behoud id's van bestaande namen, zodat turven blijven kloppen
+  return items.map(it=>{ const o=old.find(o=>o.name.toLowerCase()===it.name.toLowerCase()); return {...it,id:o?o.id:uid()}; });
+}
+$('#saveLists').onclick=()=>{
+  const np=merge(S.players,parsePlayers($('#tPlayers').value));
+  const nd=merge(S.drinks,parseLines($('#tDrinks').value).map(n=>({name:n})));
+  const lostP=S.players.filter(p=>!np.some(x=>x.id===p.id)&&total(p.id)>0);
+  const lostD=S.drinks.filter(d=>!nd.some(x=>x.id===d.id)&&S.entries.some(e=>e.did===d.id));
+  const apply=()=>{
+    const pIds=new Set(np.map(p=>p.id)), dIds=new Set(nd.map(d=>d.id));
+    S.players=np; S.drinks=nd; S.groups=groupsOf(np); if(!S.groups.includes(GUEST)) S.groups.push(GUEST); S.entries=S.entries.filter(e=>pIds.has(e.pid)&&dIds.has(e.did));
+    save(); renderSet(); toast('Lijsten opgeslagen',false);
+  };
+  if(lostP.length||lostD.length){
+    const names=[...lostP.map(p=>p.name),...lostD.map(d=>d.name)].map(esc).join(', ');
+    ask(`Je verwijdert <b>${names}</b>, maar daar staan nog open drankjes op. Die gaan dan verloren.`,'Toch opslaan',apply);
+  } else apply();
+};
+
+/* back-up */
+const backup=()=>JSON.stringify({...S,exported:new Date().toISOString()});
+$('#bCopy').onclick=async()=>{
+  try{ await navigator.clipboard.writeText(backup()); toast('Back-up gekopieerd',false); }
+  catch(e){ $('#tImport').value=backup(); $('#tImport').select(); toast('Kopiëren lukt niet: selecteer en kopieer de tekst',false); }
+};
+$('#bDl').onclick=()=>{
+  try{ const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([backup()],{type:'application/json'}));
+    a.download='kantine-backup-'+new Date().toISOString().slice(0,10)+'.json'; document.body.appendChild(a); a.click(); a.remove();
+  }catch(e){ toast('Downloaden lukt hier niet, gebruik Kopieer',false); }
+};
+$('#bImp').onclick=()=>{
+  let d; try{ d=JSON.parse($('#tImport').value); }catch(e){ return toast('Dat is geen geldige back-up',false); }
+  if(!d||!Array.isArray(d.players)||!Array.isArray(d.drinks)) return toast('Dat is geen geldige back-up',false);
+  ask('Alles op deze gsm vervangen door de back-up?','Terugzetten',()=>{
+    S={players:d.players,drinks:d.drinks,groups:d.groups,entries:d.entries||[],settlements:d.settlements||[],logo:d.logo||null};
+    load2(); save(); renderLogo(); $('#tImport').value=''; renderSet(); renderGrid(); toast('Back-up teruggezet',false);
+  });
+};
+
+function load2(){ S.players.forEach(p=>{ if(!p.group) p.group='Spelers'; });
+  S.groups=S.groups||groupsOf(S.players); if(!S.groups.includes(GUEST)) S.groups.push(GUEST); }
+/* logo kiezen: verkleinen tot 160px zodat het in de opslag past */
+$('#fLogo').onchange=e=>{
+  const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+  r.onload=()=>{ const img=new Image(); img.onload=()=>{
+      const c=document.createElement('canvas'), k=160/Math.max(img.width,img.height); c.width=Math.round(img.width*k); c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height); S.logo=c.toDataURL('image/png'); save(); renderLogo(); toast('Logo opgeslagen',false); };
+    img.src=r.result; };
+  r.readAsDataURL(f);
+};
+$('#bLogoDel').onclick=()=>{ S.logo=null; save(); $('#logo').innerHTML='<span>RM</span>'; renderLogo(); };
+
+load(); save(); renderLogo(); renderGrid();
+})();
+</script>
+</body>
+</html>

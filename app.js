@@ -71,6 +71,7 @@ const S = {
   queue: [],         // wachtende wijzigingen: {seq, kind:'add'|'del', entry}
   mine: { players: [], open: [], settlements: [] },
   failed: [],        // wijzigingen die de server definitief weigerde
+  lastSettled: null, // tijdstip van de laatste afrekening (beheerder)
   online: navigator.onLine, syncing: false, lastFetch: 0, lastSync: 0,
 };
 let effCache = null;
@@ -131,12 +132,12 @@ async function fetchAll(make) {
 const cacheKey = () => 'cache:' + S.user.id;
 function persistCache() {
   if (!S.user) return;
-  const c = { rol: S.rol, groups: S.groups, players: S.players, drinks: S.drinks, open: S.open, mine: S.mine, lastFetch: S.lastFetch };
+  const c = { rol: S.rol, groups: S.groups, players: S.players, drinks: S.drinks, open: S.open, mine: S.mine, lastSettled: S.lastSettled, lastFetch: S.lastFetch };
   DB.set(cacheKey(), c).catch(storeFail);
 }
 function applyCache(c) {
   Object.assign(S, { rol: c.rol, groups: c.groups || [], players: c.players || [], drinks: c.drinks || [],
-    open: c.open || [], mine: c.mine || { players: [], open: [], settlements: [] }, lastFetch: c.lastFetch || 0 });
+    open: c.open || [], mine: c.mine || { players: [], open: [], settlements: [] }, lastSettled: c.lastSettled || null, lastFetch: c.lastFetch || 0 });
   dirty();
 }
 
@@ -150,14 +151,18 @@ async function doRefresh(tries = 0) {
     const { data: prof, error } = await sb.from('profiles').select('rol').eq('user_id', S.user.id).maybeSingle();
     if (error) throw error;
     const rol = prof ? prof.rol : 'speler';
-    let groups = [], players = [], drinks = [], open = [], mine = { players: [], open: [], settlements: [] };
+    let groups = [], players = [], drinks = [], open = [], last = null, lastSettled = null;
+    const mine = { players: [], open: [], settlements: [] };
     if (rol === 'beheerder') {
-      [groups, players, drinks, open] = await Promise.all([
+      [groups, players, drinks, open, last] = await Promise.all([
         fetchAll(() => sb.from('groups').select('id,naam,volgorde').order('volgorde').order('id')),
         fetchAll(() => sb.from('players').select('id,naam,group_id,email,user_id,actief').order('naam').order('id')),
         fetchAll(() => sb.from('drinks').select('id,naam,volgorde,actief').order('volgorde').order('id')),
         fetchAll(() => sb.from('entries').select('id,player_id,drink_id,created_at').is('settlement_id', null).order('created_at').order('id')),
+        sb.from('settlements').select('settled_at').order('settled_at', { ascending: false }).limit(1),
       ]);
+      if (last.error) throw last.error;
+      lastSettled = last.data && last.data[0] ? last.data[0].settled_at : null;
       mine.players = players.filter(p => p.user_id === S.user.id);
     } else {
       [mine.players, drinks] = await Promise.all([
@@ -176,7 +181,7 @@ async function doRefresh(tries = 0) {
     }
     // Is er intussen iets gesynchroniseerd? Dan opnieuw ophalen, anders verdwijnt een turf even.
     if (gen !== syncGen && tries < 3) return doRefresh(tries + 1);
-    Object.assign(S, { rol, groups, players, drinks, open, mine, lastFetch: Date.now() });
+    Object.assign(S, { rol, groups, players, drinks, open, mine, lastSettled, lastFetch: Date.now() });
     dirty(); persistCache(); setNet(true);
   } catch (e) {
     if (isNetErr(e)) setNet(false);
@@ -348,14 +353,16 @@ async function start(user) {
 
 /* ------------------------------------------------------------------ navigatie */
 let curView = null;
+const TITLES = { over: 'Overzicht' };
 function showView(v) {
   curView = v;
+  $('h1').textContent = TITLES[v] || 'Drankenlijst A-kern';
   $$('.view').forEach(s => s.classList.toggle('on', s.id === 'v-' + v));
   $$('#nav button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
 }
 function go(v) {
   showView(v);
-  if (v === 'over') { renderOver(); loadHist(); }
+  if (v === 'over') { renderOver(); if (overTab === 'hist') loadHist(); }
   if (v === 'set') renderSet();
   if (v === 'turf') renderGrid();
   if (v === 'mijn') renderMijn();
@@ -633,35 +640,71 @@ async function settle(pid) {
     const { error } = await sb.rpc('afrekenen', { p_player_id: pid, p_entry_ids: ids, p_opmerking: $('#sOpm').value.trim() || null });
     if (error) { toast('Afrekenen mislukt: ' + error.message); refresh(); return; }
     const set = new Set(ids);
-    S.open = S.open.filter(e => !set.has(e.id)); syncGen++; dirty(); persistCache();
+    S.open = S.open.filter(e => !set.has(e.id)); S.lastSettled = new Date().toISOString();
+    syncGen++; dirty(); persistCache();
     renderLight(); toast(`${p.naam} afgerekend`);
-    if (curView === 'over') loadHist();
+    if (curView === 'over' && overTab === 'hist') loadHist();
     refresh();
   });
 }
 
 /* ------------------------------------------------------------------ overzicht */
+const OVER_KEY = 'turflijst-overzicht-tab';
+let overTab = lsGet(OVER_KEY) === 'hist' ? 'hist' : 'open';
+const ym = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+const isoDay = d => `${ym(d)}-${String(d.getDate()).padStart(2, '0')}`;   // lokale datum, niet UTC
+const nlKort = (d, o) => d.toLocaleDateString('nl-BE', o).replace(/\./g, '');
+const otherYear = d => d.getFullYear() !== new Date().getFullYear();
+/* "28 okt"; in een ander jaar "28 okt ’25" */
+const fmtDag = ts => { const d = new Date(ts); return nlKort(d, { day: 'numeric', month: 'short' }) + (otherYear(d) ? ` ’${String(d.getFullYear()).slice(2)}` : ''); };
+const fmtUur = ts => new Date(ts).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
+const CHEV = svg('<path d="M9 5l7 7-7 7"/>');
+/* drankjes geteld, meeste eerst (bij gelijkstand: volgorde van de drankjeslijst) */
+function drinkCounts(list) {
+  const c = countsBy(list, 'drink_id');
+  return Object.keys(c).map(id => ({ d: dById(id) || { naam: '?', volgorde: 1e9 }, n: c[id] }))
+    .sort((a, b) => (b.n - a.n) || byVolgorde(a.d, b.d));
+}
+const chipsHtml = list => `<span class="chips">${drinkCounts(list).map(x => `<span class="chip">${x.n}× ${esc(x.d.naam)}</span>`).join('')}</span>`;
+
+function setOverTab(t, load = true) {
+  overTab = t; lsSet(OVER_KEY, t);
+  $$('#overTabs [role=tab]').forEach(b => {
+    const on = b.dataset.tab === t;
+    b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
+  });
+  $('#pOpen').hidden = t !== 'open'; $('#pHist').hidden = t !== 'hist';
+  if (load && t === 'hist') loadHist();
+}
+$$('#overTabs [role=tab]').forEach(b => {
+  b.onclick = () => setOverTab(b.dataset.tab);
+  b.onkeydown = ev => {
+    if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+    const t = overTab === 'open' ? 'hist' : 'open';
+    setOverTab(t); $(`#overTabs [data-tab="${t}"]`).focus();
+  };
+});
+
 function renderOver() {
   const open = eff(), cnt = countsBy(open, 'player_id');
-  const ps = S.players.filter(p => cnt[p.id]);
-  const ds = S.drinks.filter(d => open.some(e => e.drink_id === d.id)).sort(byVolgorde);
-  if (!ps.length) $('#tbl').innerHTML = '<tr><td class="empty" style="position:static">Niets open. 🎉</td></tr>';
-  else {
-    let h = '<thead><tr><th>Speler</th>' + ds.map(d => `<th>${esc(d.naam)}</th>`).join('') + '<th class="tot">Totaal</th></tr></thead><tbody>';
-    for (const { g, ps: gp } of groupedPlayers(ps)) {
-      if (!gp.length) continue;
-      h += `<tr class="gh"><td colspan="${ds.length + 2}">${esc(g.naam)}</td></tr>`;
-      for (const p of gp) {
-        const c = countsBy(playerOpen(p.id), 'drink_id');
-        h += `<tr class="click" data-p="${p.id}"><td>${esc(p.naam)}</td>` +
-          ds.map(d => c[d.id] ? `<td>${c[d.id]}</td>` : '<td class="z">·</td>').join('') + `<td class="tot">${cnt[p.id]}</td></tr>`;
-      }
-    }
-    const all = countsBy(open, 'drink_id');
-    h += `<tr><td>Alle spelers</td>${ds.map(d => `<td class="tot">${all[d.id]}</td>`).join('')}<td class="tot">${open.length}</td></tr></tbody>`;
-    $('#tbl').innerHTML = h;
-    $$('#tbl tr.click').forEach(r => { r.onclick = () => openSheet(r.dataset.p); });
+  $('#tOpen').textContent = open.length;
+  $('#tSpelers').textContent = Object.keys(cnt).length;
+  $('#tLaatst').textContent = S.lastSettled ? fmtDag(S.lastSettled) : '–';
+  setOverTab(overTab, false);
+
+  // Openstaand: per groep, per speler één kaart (meeste eerst)
+  let h = '';
+  for (const { g, ps } of groupedPlayers(S.players.filter(p => cnt[p.id]))) {
+    if (!ps.length) continue;
+    ps.sort((a, b) => (cnt[b.id] - cnt[a.id]) || byNaam(a, b));
+    const n = ps.reduce((t, p) => t + cnt[p.id], 0);
+    h += `<div class="ghead">${esc(g.naam)}<span class="c">${n} open</span></div>` + ps.map(p => `<button class="ocard" data-p="${p.id}">
+      <span class="otop"><span class="onm">${esc(p.naam)}</span><span class="otot">${cnt[p.id]}</span>${CHEV}</span>${chipsHtml(playerOpen(p.id))}</button>`).join('');
   }
+  if (h) h += `<div class="osum"><div class="olbl">Alle spelers samen</div>${chipsHtml(open)}</div>`;
+  $('#pOpen').innerHTML = h || '<div class="empty">Niets open.</div>';
+  $$('#pOpen .ocard').forEach(b => { b.onclick = () => openSheet(b.dataset.p); });
+
   // spelerfilter vullen (alle spelers, ook gearchiveerde: geschiedenis)
   const sel = $('#hSpeler'), keep = sel.value;
   sel.innerHTML = '<option value="">Alle spelers</option>' +
@@ -669,34 +712,42 @@ function renderOver() {
   sel.value = keep;
 }
 
-const ym = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-$('#hMaand').value = ym(new Date());
-$('#hPer').onchange = () => {
-  const v = $('#hPer').value;
-  $('#hMaand').hidden = v !== 'maand'; $('#hVan').hidden = v !== 'periode'; $('#hTot').hidden = v !== 'periode';
-  if (v === 'periode' && !$('#hVan').value) {
-    const n = new Date();
-    $('#hVan').value = `${ym(n)}-01`;
-    $('#hTot').value = n.toISOString().slice(0, 10);
+/* Geschiedenis: "Deze maand" (standaard), "Vorige maand", "Alles" of een eigen periode (van–tot) */
+let histPer = 'deze', histPill = 'deze';
+function renderHistFilters() {
+  $$('#hPills .pill').forEach(b => {
+    const on = b.dataset.per === histPer;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+  });
+  $('#hRange').hidden = histPer !== 'periode';
+  $('#hMore').setAttribute('aria-expanded', histPer === 'periode');
+}
+$$('#hPills .pill').forEach(b => { b.onclick = () => { histPer = histPill = b.dataset.per; renderHistFilters(); loadHist(); }; });
+$('#hMore').onclick = () => {
+  if (histPer === 'periode') histPer = histPill;
+  else {
+    histPer = 'periode';
+    if (!$('#hVan').value) { const n = new Date(); $('#hVan').value = `${ym(n)}-01`; $('#hTot').value = isoDay(n); }
   }
-  loadHist();
+  renderHistFilters(); loadHist();
+  if (histPer === 'periode') $('#hRange').scrollIntoView({ block: 'nearest' });
 };
-['#hMaand', '#hVan', '#hTot', '#hSpeler'].forEach(s => { $(s).onchange = loadHist; });
+['#hVan', '#hTot', '#hSpeler'].forEach(s => { $(s).onchange = loadHist; });
+renderHistFilters();
 
 let histReq = 0;
 async function loadHist() {
   const req = ++histReq;
-  const per = $('#hPer').value, pid = $('#hSpeler').value;
+  const pid = $('#hSpeler').value, n = new Date();
   let from = null, to = null;
-  if (per === 'maand' && $('#hMaand').value) {
-    const [y, m] = $('#hMaand').value.split('-').map(Number);
-    from = new Date(y, m - 1, 1); to = new Date(y, m, 1);
-  } else if (per === 'periode') {
+  if (histPer === 'deze') { from = new Date(n.getFullYear(), n.getMonth(), 1); to = new Date(n.getFullYear(), n.getMonth() + 1, 1); }
+  else if (histPer === 'vorige') { from = new Date(n.getFullYear(), n.getMonth() - 1, 1); to = new Date(n.getFullYear(), n.getMonth(), 1); }
+  else if (histPer === 'periode') {
     if ($('#hVan').value) from = new Date($('#hVan').value + 'T00:00');
     if ($('#hTot').value) { to = new Date($('#hTot').value + 'T00:00'); to.setDate(to.getDate() + 1); }
   }
-  if (!navigator.onLine) { $('#histSum').innerHTML = ''; $('#hist').innerHTML = '<p class="muted">Afrekeningen bekijken kan enkel met internet.</p>'; return; }
-  $('#hist').innerHTML = '<p class="muted">Laden…</p>';
+  if (!navigator.onLine) { $('#hist').innerHTML = '<p class="empty">Afrekeningen bekijken kan enkel met internet.</p>'; return; }
+  $('#hist').innerHTML = '<p class="empty">Laden…</p>';
   try {
     const rows = await fetchAll(() => {
       let q = sb.from('settlements').select('id,player_id,settled_at,opmerking,entries(drink_id)')
@@ -707,11 +758,33 @@ async function loadHist() {
       return q;
     });
     if (req !== histReq) return;
-    renderHist(rows, $('#histSum'), $('#hist'), true);
+    renderDays(rows);
   } catch (e) {
     if (req !== histReq) return;
-    $('#hist').innerHTML = `<p class="muted">Laden mislukt: ${esc(e.message || e)}</p>`;
+    $('#hist').innerHTML = `<p class="empty">Laden mislukt: ${esc(e.message || e)}</p>`;
   }
+}
+/* afrekeningen per dag (nieuwste eerst), per dag één kaart */
+function renderDays(rows) {
+  if (!rows.length) { $('#hist').innerHTML = '<p class="empty">Nog geen afrekeningen in deze periode.</p>'; return; }
+  const days = new Map();
+  for (const s of rows) {
+    const k = isoDay(new Date(s.settled_at));
+    if (!days.has(k)) days.set(k, []);
+    days.get(k).push(s);
+  }
+  let h = '';
+  for (const list of days.values()) {
+    const d = new Date(list[0].settled_at);
+    const n = list.reduce((t, s) => t + (s.entries || []).length, 0);
+    const lbl = nlKort(d, { weekday: 'short', day: 'numeric', month: 'short', ...(otherYear(d) ? { year: 'numeric' } : {}) });
+    h += `<div class="ghead">${esc(lbl)}<span class="c">${plural(n, 'drankje', 'drankjes')}</span></div><div class="hday">` +
+      list.map(s => `<div class="hrow"><div class="hline"><b class="hnm">${esc((pById(s.player_id) || { naam: '?' }).naam)}</b>
+        <span class="huur">${fmtUur(s.settled_at)}</span><span class="htot">${(s.entries || []).length}</span></div>
+        <div class="hits">${drinkCounts(s.entries || []).map(x => `${x.n}× ${esc(x.d.naam)}`).join(' · ')}</div>
+        ${s.opmerking ? `<div class="hits">💬 ${esc(s.opmerking)}</div>` : ''}</div>`).join('') + '</div>';
+  }
+  $('#hist').innerHTML = h;
 }
 function settlementItems(s) {
   const c = countsBy(s.entries || [], 'drink_id');

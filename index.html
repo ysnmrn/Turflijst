@@ -173,20 +173,39 @@
   nav button.on{background:var(--zacht);color:var(--groen);font-weight:700}
 
   /* ---------------------------------------------------------------- overzicht */
-  .tblwrap{overflow:auto;border:1px solid var(--rand);border-radius:var(--r);background:var(--wit);max-height:65vh}
-  table{border-collapse:separate;border-spacing:0;font-size:15px;min-width:100%}
-  th,td{padding:10px;border-bottom:1px solid var(--rand);white-space:nowrap;text-align:center}
-  thead th{position:sticky;top:0;background:var(--zacht);color:var(--donker);z-index:2;font:700 16px var(--fc);letter-spacing:.3px}
-  th:first-child,td:first-child{position:sticky;left:0;background:var(--wit);text-align:left;z-index:1;font-weight:700}
-  thead th:first-child{z-index:3;background:var(--zacht)}
-  td{font-weight:600}
-  td.z{color:var(--grijs);font-weight:500}
-  td.tot,th.tot{font:700 18px var(--fc);color:var(--groen)}
-  tr.gh td{background:var(--bg)!important;color:var(--groen);font:700 14px var(--fc);text-transform:uppercase;letter-spacing:1px;text-align:left}
-  tr.click{cursor:pointer}
-  tr.click:active td{background:var(--zacht)}
-  .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-  .filters .wide{grid-column:1/-1}
+  .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .tile{background:var(--wit);border:1px solid var(--rand);border-radius:12px;padding:10px 10px 9px;min-width:0;
+    display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+  .tile .tl{font-size:12px;line-height:1.2;font-weight:600;color:var(--grijs)}
+  .tile b{font:700 28px/1 var(--fc);color:var(--groen);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seg{display:flex;gap:4px;padding:4px;margin:14px 0 2px;background:#e6eee9;border-radius:12px}
+  .seg button{flex:1;height:40px;border:0;border-radius:9px;background:none;font:600 16px var(--f);color:var(--grijs);cursor:pointer}
+  .seg button[aria-selected=true]{background:var(--wit);color:var(--groen);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .ocard{display:block;width:100%;margin:0 0 8px;padding:12px 12px 10px 14px;border:1px solid var(--rand);border-radius:var(--r);
+    background:var(--wit);color:var(--tekst);text-align:left;font:inherit;cursor:pointer}
+  .ocard:active{background:var(--zacht)}
+  .otop{display:flex;align-items:center;gap:8px}
+  .onm{flex:1;min-width:0;font-size:16px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+  .otot{flex:none;font:700 26px/1 var(--fc);color:var(--groen)}
+  .otop svg{flex:none;width:20px;height:20px;color:var(--grijs)}
+  .ocard .chips{margin:8px 0 2px}
+  .osum{margin-top:16px;padding:12px 14px 8px;border:2px dashed var(--groen);border-radius:var(--r)}
+  .olbl{font:700 15px var(--fc);text-transform:uppercase;letter-spacing:1px;color:var(--groen)}
+  .hpills{margin-top:14px}
+  .hsel{margin-top:8px}
+  .filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .filters label.f{margin:10px 0 0;min-width:0}
+  .filters input{margin-top:4px;min-width:0;padding-left:10px;padding-right:8px}
+  .hday{background:var(--wit);border:1px solid var(--rand);border-radius:var(--r);padding:0 14px}
+  .hrow{padding:11px 0}
+  .hrow+.hrow{border-top:1px solid var(--rand)}
+  .hline{display:flex;align-items:baseline;gap:10px}
+  .hnm{flex:1;min-width:0;font-weight:700;overflow-wrap:anywhere}
+  .huur{flex:none;font-size:14px;color:var(--grijs)}
+  .htot{flex:none;min-width:24px;text-align:right;font:700 22px/1 var(--fc);color:var(--groen)}
+  .hits{margin-top:3px;font-size:14px;color:var(--grijs)}
+  .linkbtn{display:block;margin:16px auto 0;min-height:44px;padding:8px 12px;border:0;background:none;color:var(--groen);
+    font:700 15px var(--f);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   .hist .card{margin-bottom:8px}
   .hist .card b{font-weight:700}
 
@@ -279,22 +298,30 @@
 
   <!-- OVERZICHT -->
   <section class="view" id="v-over">
-    <p class="muted" style="margin-top:0">Openstaande drankjes per speler. Tik op een speler om af te rekenen.</p>
-    <div class="tblwrap"><table id="tbl"></table></div>
-    <h2>Afrekeningen</h2>
-    <div class="filters">
-      <select id="hPer" aria-label="Periode">
-        <option value="maand">Per maand</option>
-        <option value="periode">Periode</option>
-        <option value="alles">Alles</option>
-      </select>
-      <input type="month" id="hMaand" aria-label="Maand">
-      <input type="date" id="hVan" aria-label="Van" hidden>
-      <input type="date" id="hTot" aria-label="Tot en met" hidden>
-      <select id="hSpeler" class="wide" aria-label="Speler"></select>
+    <div class="tiles">
+      <div class="tile"><span class="tl">Open drankjes</span><b id="tOpen">0</b></div>
+      <div class="tile"><span class="tl">Spelers open</span><b id="tSpelers">0</b></div>
+      <div class="tile"><span class="tl">Laatst afgerekend</span><b id="tLaatst">–</b></div>
     </div>
-    <div id="histSum"></div>
-    <div id="hist" class="hist"></div>
+    <div class="seg" id="overTabs" role="tablist" aria-label="Overzicht">
+      <button role="tab" id="tabOpen" data-tab="open" aria-controls="pOpen" aria-selected="true">Openstaand</button>
+      <button role="tab" id="tabHist" data-tab="hist" aria-controls="pHist" aria-selected="false" tabindex="-1">Geschiedenis</button>
+    </div>
+    <div id="pOpen" role="tabpanel" aria-labelledby="tabOpen"></div>
+    <div id="pHist" role="tabpanel" aria-labelledby="tabHist" hidden>
+      <div class="pills hpills" id="hPills" aria-label="Periode">
+        <button class="pill" data-per="deze">Deze maand</button>
+        <button class="pill" data-per="vorige">Vorige maand</button>
+        <button class="pill" data-per="alles">Alles</button>
+      </div>
+      <select id="hSpeler" class="hsel" aria-label="Speler"></select>
+      <div class="filters" id="hRange" hidden>
+        <label class="f" for="hVan">Van<input type="date" id="hVan"></label>
+        <label class="f" for="hTot">Tot en met<input type="date" id="hTot"></label>
+      </div>
+      <div id="hist"></div>
+      <button class="linkbtn" id="hMore" aria-controls="hRange" aria-expanded="false">Meer filters (periode kiezen)</button>
+    </div>
   </section>
 
   <!-- MIJN REKENING -->

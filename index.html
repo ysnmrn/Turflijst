@@ -205,6 +205,14 @@
   .huur{flex:none;font-size:14px;color:var(--grijs)}
   .htot{flex:none;min-width:24px;text-align:right;font:700 22px/1 var(--fc);color:var(--groen)}
   .hits{margin-top:3px;font-size:14px;color:var(--grijs)}
+  .hline{align-items:center}
+  .hdel{flex:none;width:44px;height:44px;margin:-6px -6px -6px 0;border:1.5px solid var(--rand);border-radius:10px;background:var(--wit);
+    color:var(--rood);cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .hdel svg{width:20px;height:20px}
+  .hdel:active{background:var(--roodzacht)}
+  .hdel:disabled{color:var(--grijs);opacity:.45;cursor:default}
+  .hoff{margin:10px 0 0;font-size:14px;font-weight:600;color:#7a4b00}
+  .hclean{margin-top:20px}
   .linkbtn{display:block;margin:16px auto 0;min-height:44px;padding:8px 12px;border:0;background:none;color:var(--groen);
     font:700 15px var(--f);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
   .hist .card{margin-bottom:8px}
@@ -321,8 +329,22 @@
         <label class="f" for="hVan">Van<input type="date" id="hVan"></label>
         <label class="f" for="hTot">Tot en met<input type="date" id="hTot"></label>
       </div>
+      <p class="hoff" id="hDelOff" hidden>Offline: verwijderen kan enkel met internet.</p>
       <div id="hist"></div>
       <button class="linkbtn" id="hMore" aria-controls="hRange" aria-expanded="false">Meer filters (periode kiezen)</button>
+      <div class="card hclean">
+        <h3>Oude afrekeningen opruimen</h3>
+        <p class="muted" style="margin:0">Verwijdert afgerekende afrekeningen en hun consumpties definitief. Wat nog openstaat, blijft staan.</p>
+        <label class="f" for="hOud">Ouder dan</label>
+        <select id="hOud">
+          <option value="3">3 maanden</option>
+          <option value="6">6 maanden</option>
+          <option value="12" selected>12 maanden</option>
+        </select>
+        <button class="btn warn full" id="hOpruim">Opruimen…</button>
+        <p class="hoff" id="hCleanOff" hidden>Opruimen kan enkel met internet.</p>
+        <p class="muted" id="hCleanMsg" role="status" hidden style="margin:10px 0 0"></p>
+      </div>
     </div>
   </section>
 

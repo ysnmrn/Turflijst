@@ -255,7 +255,7 @@ async function doSync() {
 }
 
 /* ------------------------------------------------------------------ netwerkstatus */
-function setNet(on) { if (S.online !== on) { S.online = on; renderStatus(); } }
+function setNet(on) { if (S.online !== on) { S.online = on; renderStatus(); } renderDelState(); }
 addEventListener('online', () => { setNet(true); sync().then(() => refresh()); });
 addEventListener('offline', () => setNet(false));
 document.addEventListener('visibilitychange', () => {
@@ -623,9 +623,10 @@ function hideToast() { $('#toast').classList.remove('on'); }
 
 /* ------------------------------------------------------------------ dialogen */
 // onOk mag false teruggeven (of een promise die false geeft) om de dialoog open te houden.
-function dialog(html, yesLabel, onOk, focusSel, noLabel = 'Annuleer') {
+function dialog(html, yesLabel, onOk, focusSel, noLabel = 'Annuleer', danger = false) {
   $('#dBody').innerHTML = html;
   $('#dYes').textContent = yesLabel || 'OK';
+  $('#dYes').classList.toggle('warn', danger);
   $('#dNo').textContent = noLabel;
   $('#dNo').hidden = noLabel === null;
   $('#dlg').classList.add('on');
@@ -764,7 +765,11 @@ async function loadHist() {
     if ($('#hVan').value) from = new Date($('#hVan').value + 'T00:00');
     if ($('#hTot').value) { to = new Date($('#hTot').value + 'T00:00'); to.setDate(to.getDate() + 1); }
   }
-  if (!navigator.onLine) { $('#hist').innerHTML = '<p class="empty">Afrekeningen bekijken kan enkel met internet.</p>'; return; }
+  if (!navigator.onLine) {
+    $('#hist').innerHTML = '<p class="empty">Afrekeningen bekijken kan enkel met internet.</p>';
+    renderDelState(); return;
+  }
+  renderDelState();
   $('#hist').innerHTML = '<p class="empty">Laden…</p>';
   try {
     const rows = await fetchAll(() => {
@@ -797,13 +802,65 @@ function renderDays(rows) {
     const n = list.reduce((t, s) => t + (s.entries || []).length, 0);
     const lbl = nlKort(d, { weekday: 'short', day: 'numeric', month: 'short', ...(otherYear(d) ? { year: 'numeric' } : {}) });
     h += `<div class="ghead">${esc(lbl)}<span class="c">${plural(n, 'consumptie', 'consumpties')}</span></div><div class="hday">` +
-      list.map(s => `<div class="hrow"><div class="hline"><b class="hnm">${esc((pById(s.player_id) || { naam: '?' }).naam)}</b>
-        <span class="huur">${fmtUur(s.settled_at)}</span><span class="htot">${(s.entries || []).length}</span></div>
+      list.map(s => {
+        const naam = (pById(s.player_id) || { naam: '?' }).naam;
+        return `<div class="hrow"><div class="hline"><b class="hnm">${esc(naam)}</b>
+        <span class="huur">${fmtUur(s.settled_at)}</span><span class="htot">${(s.entries || []).length}</span>
+        <button class="hdel" data-del="${s.id}" aria-label="Afrekening van ${esc(naam)} van ${esc(fmtDag(s.settled_at))} verwijderen">${ICON_DEL}</button></div>
         <div class="hits">${drinkCounts(s.entries || []).map(x => `${x.n}× ${esc(x.d.naam)}`).join(' · ')}</div>
-        ${s.opmerking ? `<div class="hits">💬 ${esc(s.opmerking)}</div>` : ''}</div>`).join('') + '</div>';
+        ${s.opmerking ? `<div class="hits">💬 ${esc(s.opmerking)}</div>` : ''}</div>`;
+      }).join('') + '</div>';
   }
+  histRows = new Map(rows.map(s => [s.id, s]));
   $('#hist').innerHTML = h;
+  $$('#hist .hdel').forEach(b => { b.onclick = () => delSettlement(b.dataset.del); });
+  renderDelState();
 }
+
+/* ------------------------------------------------------------------ afrekeningen verwijderen (enkel online) */
+const ICON_DEL = svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>');
+let histRows = new Map();
+/* knoppen uit + korte uitleg zolang er geen internet is (verwijderen gaat nooit via de offline-wachtrij) */
+function renderDelState() {
+  const on = navigator.onLine && S.online;
+  $$('#hist .hdel').forEach(b => { b.disabled = !on; });
+  $('#hDelOff').hidden = on || !$('#hist .hdel');
+  $('#hOpruim').disabled = !on;
+  $('#hCleanOff').hidden = on;
+}
+function delSettlement(id) {
+  if (needOnline('Verwijderen')) return;
+  const s = histRows.get(id); if (!s) return;
+  const naam = (pById(s.player_id) || { naam: '?' }).naam, n = (s.entries || []).length;
+  dialog(`<h3>Afrekening verwijderen</h3><p>Afrekening van <b>${esc(naam)}</b> van ${esc(fmtDag(s.settled_at))}
+    (${plural(n, 'consumptie', 'consumpties')}) definitief verwijderen? Dit kan niet ongedaan gemaakt worden.</p>`,
+  'Verwijderen', async () => {
+    if (needOnline('Verwijderen')) return false;
+    const { error } = await sb.rpc('afrekening_verwijderen', { p_settlement_id: id });
+    if (error) { toast('Verwijderen mislukt: ' + error.message); return; }
+    toast('Afrekening verwijderd');
+    loadHist(); refresh();
+  }, null, 'Annuleer', true);
+}
+$('#hOpruim').onclick = async () => {
+  if (needOnline('Opruimen')) return;
+  const m = +$('#hOud').value, msg = $('#hCleanMsg');
+  msg.hidden = true;
+  const { data, error } = await sb.rpc('afrekeningen_opruimen', { p_maanden: m, p_uitvoeren: false });
+  if (error) { toast('Opruimen mislukt: ' + error.message); return; }
+  const t = (data && data[0]) || { afrekeningen: 0, consumpties: 0 };
+  if (!t.afrekeningen) { msg.textContent = `Geen afrekeningen ouder dan ${m} maanden.`; msg.hidden = false; return; }
+  dialog(`<h3>Oude afrekeningen opruimen</h3><p>${plural(t.afrekeningen, 'afrekening', 'afrekeningen')} ouder dan ${m} maanden
+    (${plural(t.consumpties, 'consumptie', 'consumpties')}) definitief verwijderen? Dit kan niet ongedaan gemaakt worden.</p>`,
+  `${t.afrekeningen} verwijderen`, async () => {
+    if (needOnline('Opruimen')) return false;
+    const { data: d2, error: e2 } = await sb.rpc('afrekeningen_opruimen', { p_maanden: m, p_uitvoeren: true });
+    if (e2) { toast('Opruimen mislukt: ' + e2.message); return; }
+    const k = ((d2 && d2[0]) || {}).afrekeningen || 0;
+    msg.textContent = `${plural(k, 'afrekening', 'afrekeningen')} verwijderd.`; msg.hidden = false;
+    loadHist(); refresh();
+  }, null, 'Annuleer', true);
+};
 function settlementItems(s) {
   const c = countsBy(s.entries || [], 'drink_id');
   return S.drinks.filter(d => c[d.id]).sort(byCat).map(d => ({ naam: d.naam, n: c[d.id] }))

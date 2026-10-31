@@ -1,6 +1,6 @@
 # Stand van zaken
 
-*Laatst bijgewerkt: 31 oktober 2026 — alle 4 mijlpalen klaar en online; look "D", spelers, nieuwe lay-out en "consumpties" met categorieën online; afrekeningen verwijderen + registreren uit + tweede beheerder klaar (database en Auth live, app nog niet gepusht)*
+*Laatst bijgewerkt: 31 oktober 2026 — alle 4 mijlpalen klaar en online; look "D", spelers, nieuwe lay-out en "consumpties" met categorieën online; afrekeningen verwijderen, registreren uit en tweede beheerder online; testdata opgeruimd*
 
 ## Wat is de app?
 
@@ -269,6 +269,8 @@ Look D blijft; RLS, tabelrechten, offline-wachtrij, synchronisatie en rollen wer
 - Profiel: rol `beheerder`, naam ingevuld. De eigenaar blijft ook beheerder. Er zijn nu **2 beheerders**; opvragen met de query hieronder bij "Online".
 - Spelers (31) en alle consumpties zijn onaangeroerd gebleven.
 
+**Testdata opgeruimd** (31 oktober, na akkoord): alle turven en afrekeningen uit de testperiode (30–31 oktober) zijn verwijderd, in één transactie met een controle vooraf op de verwachte aantallen. Daarna: 0 open turven, 0 turven, 0 afrekeningen; 31 spelers (24 / 3 / 4) en 21 consumpties (20 actief, "Chips / snoep" gearchiveerd) staan er nog. De app start dus met een lege lijst.
+
 **Service worker**: cache naar `v5`.
 
 **Getest** (Edge headless, 390×800 en 360×800, nagebootste backend met verzonnen namen, waaronder een heel lange): onbekend adres → melding in het formulier, `create_user: false` in elk verzoek, melding verdwijnt bij typen, gekend adres → stap 2; verwijderknoppen (44px, aria-label), bevestiging met naam/datum/aantal, annuleren verwijdert niets, bevestigen verwijdert afrekening + turven en laat open turven ongemoeid, tegel "Laatst afgerekend" volgt; offline: knoppen uit + uitleg, klik doet niets, turven gaan wel in de wachtrij en worden verstuurd, verwijderen komt nooit in de wachtrij; opruimen 12 / 6 maanden met telling, "geen afrekeningen", annuleren; speler ziet geen verwijderknoppen; offline openen met cache `v5`. Regressietest van de categorieën opnieuw geslaagd. Geen horizontaal scrollen. axe-core (contrast): 0 fouten, ook met open bevestiging en offline.
@@ -288,12 +290,10 @@ Look D blijft; RLS, tabelrechten, offline-wachtrij, synchronisatie en rollen wer
 
 ## Wat nog openstaat
 
-1. **Pushen** (wacht op toestemming): verwijderen in de geschiedenis, melding bij onbekend adres, cache `v5`. De databasekant en de Auth-instelling staan al live; de huidige online app blijft werken (die vraagt nog met `shouldCreateUser: true`, wat nu voor onbekende adressen een algemene foutmelding geeft).
-2. **Testdata opruimen** (wacht op akkoord): de turven en afrekeningen die tijdens het testen op echte spelers gezet zijn.
-3. **De site op een echte gsm in daglicht bekijken** (nieuwe lay-out sinds 30 oktober, consumpties en categorieën sinds 31 oktober online; wie de app al gebruikte, ziet ze bij de tweede keer openen).
-4. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
-5. **Accounts voor spelers** die "Mijn rekening" moeten zien: account aanmaken in het dashboard en het e-mailadres bij de speler invullen (zie hierboven, registreren staat uit). Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
-6. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
+1. **De site op een echte gsm in daglicht bekijken** (nieuwe lay-out sinds 30 oktober, consumpties en categorieën sinds 31 oktober online; wie de app al gebruikte, ziet ze bij de tweede keer openen).
+2. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
+3. **Accounts voor spelers** die "Mijn rekening" moeten zien: account aanmaken in het dashboard en het e-mailadres bij de speler invullen (zie hierboven, registreren staat uit). Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
+4. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
 
 **Mogelijke uitbreidingen** (niet gevraagd, niet gebouwd): prijzen per drankje en bedragen bij afrekenen; beheerders aanduiden vanuit de app; een rol "turver" die enkel mag turven.
 

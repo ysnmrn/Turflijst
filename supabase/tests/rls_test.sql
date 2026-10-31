@@ -90,6 +90,27 @@ begin
   exception when insufficient_privilege then
     insert into r (test, ok) values ('anon: kan afrekenen() niet aanroepen', true);
   end;
+
+  begin
+    perform public.afrekening_verwijderen('20000000-0000-4000-a000-00000000000a');
+    insert into r (test, ok) values ('anon: kan afrekening_verwijderen() niet aanroepen', false);
+  exception when insufficient_privilege then
+    insert into r (test, ok) values ('anon: kan afrekening_verwijderen() niet aanroepen', true);
+  end;
+
+  begin
+    perform private.afrekening_verwijderen('20000000-0000-4000-a000-00000000000a');
+    insert into r (test, ok) values ('anon: kan private.afrekening_verwijderen() niet aanroepen', false);
+  exception when insufficient_privilege then
+    insert into r (test, ok) values ('anon: kan private.afrekening_verwijderen() niet aanroepen', true);
+  end;
+
+  begin
+    perform * from public.afrekeningen_opruimen(3, true);
+    insert into r (test, ok) values ('anon: kan afrekeningen_opruimen() niet aanroepen', false);
+  exception when insufficient_privilege then
+    insert into r (test, ok) values ('anon: kan afrekeningen_opruimen() niet aanroepen', true);
+  end;
 end $$;
 
 reset role;
@@ -170,7 +191,37 @@ begin
   exception when insufficient_privilege then
     insert into r (test, ok) values ('speler A: kan geen drankje toevoegen', true);
   end;
+
+  -- eigen afrekening verwijderen: via de API-functie, rechtstreeks via private, en opruimen
+  begin
+    perform public.afrekening_verwijderen('20000000-0000-4000-a000-00000000000a');
+    insert into r (test, ok) values ('speler A: kan eigen afrekening niet verwijderen', false);
+  exception when insufficient_privilege then
+    insert into r (test, ok) values ('speler A: kan eigen afrekening niet verwijderen', true);
+  end;
+
+  begin
+    perform private.afrekening_verwijderen('20000000-0000-4000-a000-00000000000a');
+    insert into r (test, ok) values ('speler A: kan private.afrekening_verwijderen() niet misbruiken', false);
+  exception when insufficient_privilege then
+    insert into r (test, ok) values ('speler A: kan private.afrekening_verwijderen() niet misbruiken', true);
+  end;
+
+  begin
+    perform * from public.afrekeningen_opruimen(3, true);
+    insert into r (test, ok) values ('speler A: kan afrekeningen niet opruimen', false);
+  exception when insufficient_privilege then
+    insert into r (test, ok) values ('speler A: kan afrekeningen niet opruimen', true);
+  end;
 end $$;
+
+reset role;
+insert into r (test, ok) values ('speler A: eigen afrekening en turven staan er nog',
+  exists (select 1 from public.settlements where id = '20000000-0000-4000-a000-00000000000a')
+  and (select count(*) from public.entries where settlement_id = '20000000-0000-4000-a000-00000000000a') = 1);
+set local role authenticated;
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-4000-a000-000000000002","role":"authenticated"}', true);
 
 reset role;
 
@@ -290,6 +341,81 @@ begin
     insert into r (test, ok) values ('beheerder: groep met spelers kan niet weg', false);
   exception when foreign_key_violation then
     insert into r (test, ok) values ('beheerder: groep met spelers kan niet weg', true);
+  end;
+end $$;
+
+-- ------------------------------------------------------------ BEHEERDER: afrekeningen verwijderen
+do $$
+declare
+  n integer; open_voor bigint; p uuid; d uuid; s uuid; s_oud uuid; s_nieuw uuid; ids uuid[];
+  t record;
+begin
+  select id into d from public.drinks order by volgorde limit 1;
+  insert into public.players (naam, group_id) select 'Test D', id from public.groups order by volgorde limit 1 returning id into p;
+  insert into public.entries (player_id, drink_id) values (p, d), (p, d), (p, d);
+  s := public.afrekenen(p, array(select id from public.entries where player_id = p));
+  ids := array(select id from public.entries where settlement_id = s);
+  insert into public.entries (player_id, drink_id) values (p, d), (p, d);          -- 2 nieuwe open turven
+  open_voor := (select count(*) from public.entries where settlement_id is null);
+
+  n := public.afrekening_verwijderen(s);
+  insert into r (test, ok) values ('beheerder: afrekening_verwijderen() geeft het aantal consumpties terug', n = 3);
+  insert into r (test, ok) values ('beheerder: afrekening en haar turven zijn weg (niet terug open)',
+    not exists (select 1 from public.settlements where id = s)
+    and not exists (select 1 from public.entries where id = any (ids)));
+  insert into r (test, ok) values ('beheerder: open turven blijven staan na verwijderen',
+    (select count(*) from public.entries where settlement_id is null) = open_voor
+    and (select count(*) from public.entries where player_id = p and settlement_id is null) = 2);
+
+  begin
+    perform public.afrekening_verwijderen(s);
+    insert into r (test, ok) values ('beheerder: onbestaande afrekening geeft fout', false);
+  exception when no_data_found then
+    insert into r (test, ok) values ('beheerder: onbestaande afrekening geeft fout', true);
+  end;
+
+  -- een open turf is geen afrekening: id van een open turf wordt geweigerd
+  begin
+    perform public.afrekening_verwijderen((select id from public.entries where player_id = p and settlement_id is null limit 1));
+    insert into r (test, ok) values ('beheerder: open turf kan niet via afrekening_verwijderen()', false);
+  exception when no_data_found then
+    insert into r (test, ok) values ('beheerder: open turf kan niet via afrekening_verwijderen()',
+      (select count(*) from public.entries where player_id = p and settlement_id is null) = 2);
+  end;
+
+  begin
+    perform public.afrekening_verwijderen(null);
+    insert into r (test, ok) values ('beheerder: lege afrekening-id geeft fout', false);
+  exception when null_value_not_allowed then
+    insert into r (test, ok) values ('beheerder: lege afrekening-id geeft fout', true);
+  end;
+
+  -- opruimen: een oude (7 maanden) en een recente (1 maand) afrekening
+  insert into public.settlements (player_id, settled_at) values (p, now() - interval '7 months') returning id into s_oud;
+  insert into public.settlements (player_id, settled_at) values (p, now() - interval '1 month') returning id into s_nieuw;
+  insert into public.entries (player_id, drink_id, settlement_id) values (p, d, s_oud), (p, d, s_oud), (p, d, s_nieuw);
+  open_voor := (select count(*) from public.entries where settlement_id is null);
+
+  select * into t from public.afrekeningen_opruimen(6, false);
+  insert into r (test, ok) values ('beheerder: opruimen (tellen) verwijdert niets',
+    t.afrekeningen >= 1 and t.consumpties >= 2 and exists (select 1 from public.settlements where id = s_oud));
+
+  select * into t from public.afrekeningen_opruimen(6, true);
+  insert into r (test, ok) values ('beheerder: opruimen ouder dan 6 maanden verwijdert enkel oude afrekeningen',
+    t.afrekeningen >= 1
+    and not exists (select 1 from public.settlements where id = s_oud)
+    and not exists (select 1 from public.entries where settlement_id = s_oud)
+    and exists (select 1 from public.settlements where id = s_nieuw)
+    and not exists (select 1 from public.settlements where settled_at < now() - interval '6 months'));
+  insert into r (test, ok) values ('beheerder: open turven blijven staan na opruimen',
+    (select count(*) from public.entries where settlement_id is null) = open_voor);
+
+  begin
+    perform * from public.afrekeningen_opruimen(1, true);
+    insert into r (test, ok) values ('beheerder: opruimen enkel voor 3, 6 of 12 maanden', false);
+  exception when invalid_parameter_value then
+    insert into r (test, ok) values ('beheerder: opruimen enkel voor 3, 6 of 12 maanden',
+      exists (select 1 from public.settlements where id = s_nieuw));
   end;
 end $$;
 

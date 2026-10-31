@@ -58,5 +58,14 @@ st, body = call("POST", "/rest/v1/rpc/afrekenen", {"p_player_id": "00000000-0000
                                                    "p_entry_ids": []})
 check("anon kan afrekenen() niet aanroepen", st in (401, 403, 404), f"{st} {body[:200]}")
 
+st, body = call("POST", "/rest/v1/rpc/afrekening_verwijderen", {"p_settlement_id": "00000000-0000-0000-0000-000000000000"})
+check("anon kan afrekening_verwijderen() niet aanroepen", st in (401, 403, 404), f"{st} {body[:200]}")
+
+st, body = call("POST", "/rest/v1/rpc/afrekeningen_opruimen", {"p_maanden": 3, "p_uitvoeren": True})
+check("anon kan afrekeningen_opruimen() niet aanroepen", st in (401, 403, 404), f"{st} {body[:200]}")
+
+st, body = call("DELETE", "/rest/v1/settlements?id=not.is.null")
+check("anon kan geen afrekeningen verwijderen", st in (401, 403) or (st in (200, 204) and body in ("", "[]")), f"{st} {body[:200]}")
+
 print(f"\n{fouten} fout(en)")
 sys.exit(1 if fouten else 0)

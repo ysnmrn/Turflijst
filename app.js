@@ -308,12 +308,22 @@ $('#fLogin').onsubmit = async ev => {
   loginEmail = $('#lEmail').value.trim().toLowerCase();
   if (!loginEmail) return;
   $('#lSend').disabled = true;
-  const { error } = await sb.auth.signInWithOtp({ email: loginEmail, options: { emailRedirectTo: APP_URL, shouldCreateUser: true } });
+  // Vrij registreren staat uit: enkel bestaande accounts krijgen een inloglink.
+  const { error } = await sb.auth.signInWithOtp({ email: loginEmail, options: { emailRedirectTo: APP_URL, shouldCreateUser: false } });
   $('#lSend').disabled = false;
-  if (error) return toast(/rate|limit|seconds/i.test(error.message) ? 'Even wachten voor je een nieuwe mail vraagt' : 'Mail versturen mislukt: ' + error.message);
+  $('#lErr').hidden = true;
+  if (error) {
+    if (/otp_disabled|signup_disabled/.test(error.code || '') || /signups? not allowed/i.test(error.message)) {
+      $('#lErr').textContent = 'Dit e-mailadres is niet gekend. Vraag het aan de beheerder.';
+      $('#lErr').hidden = false;
+      return;
+    }
+    return toast(/rate|limit|seconds/i.test(error.message) ? 'Even wachten voor je een nieuwe mail vraagt' : 'Mail versturen mislukt: ' + error.message);
+  }
   $('#lTo').textContent = loginEmail; $('#fLogin').hidden = true; $('#lStep2').hidden = false;
   $('#lCode').value = ''; $('#lCode').focus();
 };
+$('#lEmail').oninput = () => { $('#lErr').hidden = true; };
 $('#fCode').onsubmit = async ev => {
   ev.preventDefault();
   const token = $('#lCode').value.replace(/\s/g, '');

@@ -1,6 +1,6 @@
 # Stand van zaken
 
-*Laatst bijgewerkt: 30 oktober 2026 — alle 4 mijlpalen klaar en online; look "D" online; spelers staan in de database; nieuwe lay-out (pil "Alle", nieuw Overzicht) online; "consumpties" met categorieën online*
+*Laatst bijgewerkt: 31 oktober 2026 — alle 4 mijlpalen klaar en online; look "D", spelers, nieuwe lay-out en "consumpties" met categorieën online; afrekeningen verwijderen + registreren uit + tweede beheerder klaar (database en Auth live, app nog niet gepusht)*
 
 ## Wat is de app?
 
@@ -28,7 +28,7 @@ Versie 1 was één `index.html` met alle gegevens in `localStorage` (één toest
 | Plan | Free |
 | Dashboard | https://supabase.com/dashboard/project/cwzntyygjgnikphbfpei |
 
-- Auth: e-mail-login (magic link via `signInWithOtp`), nieuwe registraties toegestaan, e-mailbevestiging aan.
+- Auth: e-mail-login (magic link via `signInWithOtp`), e-mailbevestiging aan. **Vrij registreren staat uit** (sinds 31 oktober): enkel bestaande accounts krijgen een inloglink. Nieuwe accounts maakt de beheerder aan (zie "Afrekeningen verwijderen, registreren uit, tweede beheerder").
 - `supabase/config.toml` is gelijkgezet met de live instellingen. Draai altijd eerst `supabase config diff` vóór `supabase config push`.
 - De repo is gelinkt (`supabase link`). Migraties: `supabase db push`.
 - De secret/service_role key en het databasewachtwoord staan **nergens** in deze repo.
@@ -45,6 +45,7 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 | `20261030200200_seed_groepen_drankjes.sql` | 4 groepen en 18 drankjes (geen spelers) |
 | `20261030200300_hulpfuncties_private.sql` | Hulpfuncties naar schema `private` |
 | `20261031090000_categorie_consumpties.sql` | Kolom `drinks.categorie` + indeling, zie "Consumpties en categorieën" |
+| `20261031120000_afrekening_verwijderen.sql` | Functies om afgerekende afrekeningen te verwijderen, zie "Afrekeningen verwijderen" |
 
 **Tabellen**
 
@@ -60,7 +61,7 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 - **Koppeling login ↔ speler via e-mail.** Vult de beheerder bij een speler een e-mailadres in, dan wordt die speler gekoppeld zodra iemand met dat adres inlogt (of meteen, als die login al bestaat). Dat doen twee triggers: `handle_new_user` (op `auth.users`) en `players_koppel_email` (op `players`).
 - **Beheerder maken gebeurt met SQL**, niet in de app (zie README). Zo kan niemand zichzelf promoveren.
 - **Afrekenen gebeurt via de functie `afrekenen(player_id, entry_ids[], opmerking)`.** Die maakt de afrekening en koppelt precies de turven die de beheerder op het scherm zag, in één transactie. Twee keer afrekenen geeft een fout.
-- **Verwijderen**: niemand kan spelers, drankjes of afrekeningen verwijderen (de tabelrechten staan het niet eens toe). Een beheerder kan wél een *open* turf verwijderen (−1 / ongedaan maken). Groepen kunnen weg zolang er geen spelers in zitten.
+- **Verwijderen**: niemand kan spelers, drankjes of afrekeningen rechtstreeks verwijderen (de tabelrechten staan het niet eens toe). Een beheerder kan wél een *open* turf verwijderen (−1 / ongedaan maken). Groepen kunnen weg zolang er geen spelers in zitten. Sinds 31 oktober kan een beheerder een *afgerekende* afrekening (met haar turven) verwijderen, maar enkel via de functies `afrekening_verwijderen()` en `afrekeningen_opruimen()`; de tabelrechten en RLS zijn daarvoor niet veranderd.
 - **Spelers zien de drankjeslijst** (enkel als ze aan een speler gekoppeld zijn), anders kan "Mijn rekening" geen namen tonen. Groepen en andere spelers zien ze niet.
 - **`entries.id` en `created_at` mag de app meegeven.** Nodig voor offline turven: het toestel maakt zelf het id, zodat een turf nooit dubbel wordt opgeslagen en het tijdstip klopt.
 - **Prijzen** zitten (nog) niet in het model; de app telt aantallen, net als versie 1.
@@ -78,8 +79,8 @@ Migraties in `supabase/migrations/` (al toegepast op het live project):
 
 **Tests**
 
-- `supabase db query --linked -f supabase/tests/rls_test.sql` — 54 tests (anon, speler A, speler B, login zonder speler, beheerder, triggers). Draait in één transactie met `ROLLBACK`: er blijft niets achter. Alle rijen moeten `ok = true` zijn.
-- `python supabase/tests/anon_http_test.py` — test via de echte API met de publieke key dat niet-ingelogde bezoekers niets lezen of schrijven.
+- `supabase db query --linked -f supabase/tests/rls_test.sql` — 71 tests (anon, speler A, speler B, login zonder speler, beheerder, triggers, afrekeningen verwijderen). Draait in één transactie met `ROLLBACK`: er blijft niets achter. Alle rijen moeten `ok = true` zijn.
+- `python supabase/tests/anon_http_test.py` — test via de echte API met de publieke key dat niet-ingelogde bezoekers niets lezen, schrijven of verwijderen (13 tests).
 - `supabase db advisors --linked` — één waarschuwing: "Leaked Password Protection" staat uit. Niet relevant: inloggen gebeurt alleen via een maillink (geen wachtwoorden).
 
 ## Mijlpaal 2: UI omgebouwd
@@ -244,10 +245,38 @@ Look D blijft; RLS, offline-wachtrij, synchronisatie en rollen werken zoals voor
 
 **Getest** (Edge headless, 390×800 en 360×800, nagebootste backend met verzonnen namen; niets in de live database aangeraakt behalve de migratie): kop/title/manifest/loginscherm zonder "drank"; 4 categoriekopjes in de goede volgorde en stijl, 3 kolommen per categorie, gearchiveerd item niet als tegel; offline turven op een nieuw item (Koek) en een bestaand (Duvel), −1 uit de wachtrij, daarna correct verstuurd; "Alle spelers samen" per categorie; geschiedenis met gearchiveerd item; Beheer: categoriekopjes, ▲▼ past enkel de eigen categorie aan, categorie wijzigen, nieuw item standaard Fris en zichtbaar in het consumptiescherm; Mijn rekening als speler; offline openen met cache `v4` en turven op een nieuw item. Geen horizontaal scrollen. axe-core (contrast): 0 fouten.
 
+## Afrekeningen verwijderen, registreren uit, tweede beheerder (31 oktober 2026)
+
+Look D blijft; RLS, tabelrechten, offline-wachtrij, synchronisatie en rollen werken zoals voordien.
+
+**Afrekeningen verwijderen** (migratie `20261031120000_afrekening_verwijderen.sql`, live toegepast)
+- `public.afrekening_verwijderen(p_settlement_id)` verwijdert één afrekening **samen met haar turven**, in één transactie, en geeft het aantal verwijderde consumpties terug. Onbekend id (ook het id van een open turf) → fout, er gebeurt niets.
+- `public.afrekeningen_opruimen(p_maanden, p_uitvoeren)` doet hetzelfde voor alle afrekeningen ouder dan 3, 6 of 12 maanden (andere waarden → fout). Met `p_uitvoeren = false` telt hij enkel (voor de bevestigingsvraag).
+- **Open turven worden nooit geraakt**: er wordt enkel verwijderd waar `settlement_id` = de afrekening. Eerst de turven, dan de afrekening; de foreign key `entries.settlement_id` is ON DELETE RESTRICT, dus turven kunnen nooit terug "open" worden. De afrekening wordt vergrendeld (FOR UPDATE).
+- **Waarom SECURITY DEFINER**: de tabelrechten en RLS laten bewust niet toe dat iemand afrekeningen of afgerekende turven verwijdert. Om die regels niet te moeten veranderen, gebeurt het werk in `private.afrekening_verwijderen` / `private.afrekeningen_opruimen` (SECURITY DEFINER, `search_path = ''`, eigen beheerderscontrole). Het schema `private` is niet via de API bereikbaar. De API ziet enkel de `public.*`-varianten (SECURITY INVOKER), die ook zelf controleren dat de aanroeper beheerder is. Uitvoerrecht enkel voor `authenticated`, niet voor `anon`.
+- Getest (RLS-test, in een teruggedraaide transactie): anon en speler kunnen niets verwijderen (ook niet rechtstreeks via `private`), de eigen afrekening van een speler blijft staan, na verwijderen zijn afrekening en turven weg en blijven open turven exact gelijk, opruimen verwijdert enkel oude afrekeningen. De migratie is eerst samen met alle tests in een teruggedraaide transactie gedraaid en pas daarna live gezet. `supabase db advisors`: geen nieuwe waarschuwingen.
+- **App** (Overzicht → Geschiedenis): per afrekening een vuilbakknop (44px, `aria-label` "Afrekening van … van … verwijderen"). Bevestiging: "Afrekening van [naam] van [datum] ([n] consumpties) definitief verwijderen? Dit kan niet ongedaan gemaakt worden." (rode knop "Verwijderen"). Onderaan de kaart "Oude afrekeningen opruimen" met keuze 3 / 6 / 12 maanden (standaard 12): eerst wordt geteld, dan volgt een bevestiging met het aantal; "Geen afrekeningen ouder dan …" als er niets is.
+- **Enkel online**: verwijderen gaat nooit via de offline-wachtrij. Offline zijn de knoppen uitgeschakeld met "Offline: verwijderen kan enkel met internet." / "Opruimen kan enkel met internet."
+- Wat bewust niet veranderd is: een beheerder mag via de API nog altijd turven *wijzigen* (zo werkt afrekenen). In theorie kan zo iemand met beheerdersrechten een afgerekende turf terug open zetten; de app doet dat nergens. Dichtzetten vraagt een RLS-wijziging.
+
+**Vrij registreren uit**
+- `supabase/config.toml`: `[auth] enable_signup = false` (e-mail-login zelf blijft aan). Met `supabase config diff` gecontroleerd dat dit het enige verschil was, daarna `supabase config push`. Live gecontroleerd: `/auth/v1/settings` geeft `disable_signup = true`; een inloglink voor een onbekend adres geeft `422 otp_disabled` en er wordt geen mail verstuurd.
+- De app vraagt inloglinks met `shouldCreateUser: false`. Bij een onbekend adres staat in het loginformulier: "Dit e-mailadres is niet gekend. Vraag het aan de beheerder."
+- **Gevolg**: een speler die "Mijn rekening" wil zien, heeft eerst een account nodig. Zo maak je er een: Supabase-dashboard → Authentication → Users → *Add user* → *Create new user*, e-mailadres invullen, "Auto Confirm User" aan (er wordt dan geen mail verstuurd). Vul daarna in de app bij de speler hetzelfde e-mailadres in: de koppeling gebeurt vanzelf. Daarna kan die persoon inloggen met een maillink.
+
+**Tweede beheerder (cafetaria)**
+- Account aangemaakt via de Supabase Admin API (`POST /auth/v1/admin/users` met `email_confirm: true`): e-mail meteen bevestigd, geen mail verstuurd. De secret key ging rechtstreeks van `supabase projects api-keys --reveal` naar het verzoek en is nergens opgeslagen. (Let op: Supabase weigert een secret key als de User-Agent op een browser lijkt, zoals die van PowerShell; gebruik dan een eigen User-Agent.)
+- Profiel: rol `beheerder`, naam ingevuld. De eigenaar blijft ook beheerder. Er zijn nu **2 beheerders**; opvragen met de query hieronder bij "Online".
+- Spelers (31) en alle consumpties zijn onaangeroerd gebleven.
+
+**Service worker**: cache naar `v5`.
+
+**Getest** (Edge headless, 390×800 en 360×800, nagebootste backend met verzonnen namen, waaronder een heel lange): onbekend adres → melding in het formulier, `create_user: false` in elk verzoek, melding verdwijnt bij typen, gekend adres → stap 2; verwijderknoppen (44px, aria-label), bevestiging met naam/datum/aantal, annuleren verwijdert niets, bevestigen verwijdert afrekening + turven en laat open turven ongemoeid, tegel "Laatst afgerekend" volgt; offline: knoppen uit + uitleg, klik doet niets, turven gaan wel in de wachtrij en worden verstuurd, verwijderen komt nooit in de wachtrij; opruimen 12 / 6 maanden met telling, "geen afrekeningen", annuleren; speler ziet geen verwijderknoppen; offline openen met cache `v5`. Regressietest van de categorieën opnieuw geslaagd. Geen horizontaal scrollen. axe-core (contrast): 0 fouten, ook met open bevestiging en offline.
+
 ## Online (30 oktober 2026)
 
 - **App**: https://ysnmrn.github.io/Turflijst/ — GitHub Pages, branch `main`, map `/` (root).
-- **Beheerder**: de eigenaar van de repo (GitHub `ysnmrn`). Het e-mailadres staat bewust niet in deze publieke repo. Opzoeken wie beheerder is:
+- **Beheerders**: de eigenaar van de repo (GitHub `ysnmrn`) en, sinds 31 oktober, de cafetariaverantwoordelijke. De e-mailadressen staan bewust niet in deze publieke repo. Opzoeken wie beheerder is:
   ```sql
   select u.email, p.rol from auth.users u join public.profiles p on p.user_id = u.id where p.rol = 'beheerder';
   ```
@@ -259,10 +288,12 @@ Look D blijft; RLS, offline-wachtrij, synchronisatie en rollen werken zoals voor
 
 ## Wat nog openstaat
 
-1. **De site op een echte gsm in daglicht bekijken** (nieuwe lay-out sinds 30 oktober, consumpties en categorieën sinds 31 oktober online; wie de app al gebruikte, ziet ze bij de tweede keer openen).
-2. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
-3. **E-mailadressen invullen** (Beheer → speler) voor wie "Mijn rekening" moet kunnen zien; de spelers zelf staan al in de database. Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
-4. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
+1. **Pushen** (wacht op toestemming): verwijderen in de geschiedenis, melding bij onbekend adres, cache `v5`. De databasekant en de Auth-instelling staan al live; de huidige online app blijft werken (die vraagt nog met `shouldCreateUser: true`, wat nu voor onbekende adressen een algemene foutmelding geeft).
+2. **Testdata opruimen** (wacht op akkoord): de turven en afrekeningen die tijdens het testen op echte spelers gezet zijn.
+3. **De site op een echte gsm in daglicht bekijken** (nieuwe lay-out sinds 30 oktober, consumpties en categorieën sinds 31 oktober online; wie de app al gebruikte, ziet ze bij de tweede keer openen).
+4. **Eigen SMTP instellen** vóór het hele team uitgenodigd wordt (de ingebouwde mailserver haalt maar 2 mails per uur). Daarna in `supabase/config.toml` de twee `[auth.email.template...]`-blokken aanzetten en `supabase config push` draaien: dan staat er ook een code in de login-mail (nodig voor de app op het beginscherm van een iPhone).
+5. **Accounts voor spelers** die "Mijn rekening" moeten zien: account aanmaken in het dashboard en het e-mailadres bij de speler invullen (zie hierboven, registreren staat uit). Staan er nog gegevens van versie 1 op de gsm waarop tot nu geturfd werd? Open de nieuwe app op díe gsm als beheerder: onder Beheer verschijnt dan een knop om die te importeren.
+6. Over een paar dagen nakijken of de eerste **geplande** run (maandag of donderdag) vanzelf gestart en geslaagd is.
 
 **Mogelijke uitbreidingen** (niet gevraagd, niet gebouwd): prijzen per drankje en bedragen bij afrekenen; beheerders aanduiden vanuit de app; een rol "turver" die enkel mag turven.
 
